@@ -1,6 +1,9 @@
 import struct
 import glob
 import random
+import numpy as np
+from matplotlib import pyplot as plt
+from matplotlib.widgets import Button
 
 from zone import *
 
@@ -302,11 +305,7 @@ class FirefighterMission:
 
         return spawns
 
-ff = FirefighterMission(0)
-spawns = ff.generate_level(12, 2865.0, -798.0, 20.0)
-for spawn in spawns:
-    print(spawn.x, spawn.y, spawn.z, spawn.num_attempts, get_zone(spawn.x, spawn.y, spawn.z).name)
-
+'''
 d = []
 for i in range(10):
     print(i)
@@ -318,3 +317,32 @@ for i in range(10):
 print('Min: ', min(d))
 print('Max: ', max(d))
 print('Avg: ', sum(d) / len(d))
+'''
+
+RADAR_IMAGE = im = plt.imread('./assets/radar.png')
+
+plt.rcParams["figure.figsize"] = [9, 9]
+fig, ax = plt.subplots()
+im = ax.imshow(im, extent=[-3000, 3000, -3000, 3000])
+sp, = ax.plot([], [], label='', ms=10, color='r', marker='o', ls='')
+
+def generate_next(event):
+    ff = FirefighterMission(0)
+    spawns = ff.generate_level(12, 2865.0, -798.0, 20.0)
+    for spawn in spawns:
+        print(spawn.x, spawn.y, spawn.z, spawn.num_attempts, get_zone(spawn.x, spawn.y, spawn.z).name)
+
+    x = []
+    y = []
+    for spawn in spawns:
+        x.append(spawn.x)
+        y.append(spawn.y)
+
+    sp.set_data(x, y)
+    fig.canvas.draw()
+
+ax_button = fig.add_axes([0.9, 0.0, 0.1, 0.075])
+bnext = Button(ax_button, 'GENERATE')
+bnext.on_clicked(generate_next)
+
+plt.show()
