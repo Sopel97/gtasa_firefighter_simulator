@@ -393,7 +393,7 @@ ZONES = [
 
 def get_zone(x, y, z):
     for zone in ZONES:
-        if x >= zone.min_x and y >= zone.max_x and z >= zone.max_z and x <= zone.max_x and y <= zone.max_y and z <= zone.max_z:
+        if x >= zone.min_x and y >= zone.min_y and z >= zone.min_z and x <= zone.max_x and y <= zone.max_y and z <= zone.max_z:
             return zone
     return None
 
