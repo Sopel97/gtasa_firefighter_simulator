@@ -261,14 +261,10 @@ class FirefighterMission:
         if dist_3d(nearest_node.x, nearest_node.y, nearest_node.z, x, y, z) < 140:
             return None
 
-        if num_attempts < 35:
+        if num_attempts < 35 and len(spawns) > 0:
             # Before attempt 35 require the same zone as player or first spawn if already happened
-            if len(spawns) > 0:
-                if not same_zone(nearest_node.x, nearest_node.y, nearest_node.z, spawns[0].x, spawns[0].y, spawns[0].z):
-                    return None
-            else:
-                if not same_zone(nearest_node.x, nearest_node.y, nearest_node.z, x, y, z):
-                    return None
+            if not same_zone(nearest_node.x, nearest_node.y, nearest_node.z, spawns[0].x, spawns[0].y, spawns[0].z):
+                return None
 
         # Generate only in unlocked cities
         if self.num_unlocked_cities == 0:
@@ -523,9 +519,9 @@ def plot_probability_that_firefighter_stays_on_coast(ff, min_x, min_y, max_x, ma
                     y = s.y
                     z = s.z
                     if s.y > -100 or s.x < 2650 or (s.x < 2800 and s.y < -600):
-                        ok = False
+                        ok = 0
                         break
-                if not ok:
+                if ok == 0:
                     break
 
             ds.append(ok)

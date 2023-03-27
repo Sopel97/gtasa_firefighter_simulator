@@ -414,3 +414,4 @@ def draw_zones(ax):
         w = zone.max_x - x
         h = zone.max_y - y
         ax.add_patch(Rectangle((x, y), w, h, edgecolor = 'blue', fill=False, lw=1))
+        #ax.text(x, y, zone.name)

@@ -62,7 +62,7 @@ $car_model = 0
 116@ = 0
 117@ = 0
 118@ = 0
-119@ = 0
+$enforce_same_zone = 0
 $8221 = 0
 $8220 = 0
 03C7: set_sensitivity_to_crime 0.5
@@ -269,7 +269,7 @@ jump @FIRETRU_10464
 jump @FIRETRU_1536
 
 :FIRETRU_1600
-119@ = 0
+$enforce_same_zone = 0
 FIRETRU_5971()
 0087: 127@ = $node1_x // (float)
 0087: 128@ = $node1_y // (float)
@@ -288,7 +288,7 @@ Marker.Disable(64@)
 07E0: set_marker 64@ type_to 1
 018B: set_marker 64@ radar_mode 2
 03ED: set_car 35@ disable_flipped_explosion_when_empty 1
-119@ = 1
+$enforce_same_zone = 1
 88@ += 1
 0560: create_random_actor_in_car 35@ handle_as $player_actor
 060B: set_actor $player_actor decision_maker_to 165@
@@ -1147,7 +1147,7 @@ $is_spawn_ok = 0
 
 :FIRETRU_6694
 if
-  119@ == 1
+  $enforce_same_zone == 1
 else_jump @FIRETRU_6780
 if
   35.0 > $num_attempts
