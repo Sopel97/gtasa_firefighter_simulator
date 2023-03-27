@@ -358,7 +358,119 @@ def plot_average_distance_to_farthest_spawn(ff, level, min_x, min_y, max_x, max_
     plt.rcParams["figure.figsize"] = [9, 9]
     fig, ax = plt.subplots()
     im = ax.imshow(im, extent=[-3000, 3000, -3000, 3000])
+    draw_zones(ax)
+
     c = ax.pcolormesh(bx, by, bz, cmap='RdBu', alpha=0.75)
+    fig.colorbar(c, ax=ax)
+
+    plt.show()
+
+def plot_average_distance_between_spawns(ff, level, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket):
+    bucket_i = 0
+    @np.vectorize
+    def gen_bucket(bucket_x, bucket_y):
+        nonlocal bucket_i
+        bucket_i += 1
+        print(f'Processing bucket: {bucket_i} / {num_buckets}')
+
+        ds = []
+        for i in range(num_generations_per_bucket):
+            spawns = ff.generate_level(level, bucket_x, bucket_y, 20.0)
+            for i in range(len(spawns)):
+                for j in range(i + 1, len(spawns)):
+                    s0 = spawns[i]
+                    s1 = spawns[j]
+                    d = dist_3d(s0.x, s0.y, s0.z, s1.x, s1.y, s1.z)
+                    ds.append(d)
+        return sum(ds) / len(ds)
+
+    bx, by = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
+    bz = gen_bucket(bx, by)
+
+    RADAR_IMAGE = im = plt.imread('./assets/radar_bw.png')
+
+    plt.rcParams["figure.figsize"] = [9, 9]
+    fig, ax = plt.subplots()
+    im = ax.imshow(im, extent=[-3000, 3000, -3000, 3000])
+    draw_zones(ax)
+
+    c = ax.pcolormesh(bx, by, bz, cmap='RdBu', alpha=0.75)
+    fig.colorbar(c, ax=ax)
+
+    plt.show()
+
+def plot_probability_of_multizone_split(ff, level, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket):
+    bucket_i = 0
+    @np.vectorize
+    def gen_bucket(bucket_x, bucket_y):
+        nonlocal bucket_i
+        bucket_i += 1
+        print(f'Processing bucket: {bucket_i} / {num_buckets}')
+
+        splits = []
+        for i in range(num_generations_per_bucket):
+            spawns = ff.generate_level(level, bucket_x, bucket_y, 20.0)
+            split = 0
+            for spawn in spawns[1:]: # using all spawns would also include spawns outside of player's zone
+                if not same_zone(spawn.x, spawn.y, spawn.z, spawns[0].x, spawns[0].y, spawns[0].z):
+                    split = 1
+            splits.append(split)
+        return sum(splits) / len(splits)
+
+    bx, by = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
+    bz = gen_bucket(bx, by)
+
+    RADAR_IMAGE = im = plt.imread('./assets/radar_bw.png')
+
+    plt.rcParams["figure.figsize"] = [9, 9]
+    fig, ax = plt.subplots()
+    im = ax.imshow(im, extent=[-3000, 3000, -3000, 3000])
+    draw_zones(ax)
+
+    c = ax.pcolormesh(bx, by, bz, cmap='Reds', alpha=0.75)
+    fig.colorbar(c, ax=ax)
+
+    plt.show()
+
+def plot_average_total_firefighter_distance(ff, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket):
+    bucket_i = 0
+    @np.vectorize
+    def gen_bucket(bucket_x, bucket_y):
+        nonlocal bucket_i
+        bucket_i += 1
+        print(f'Processing bucket: {bucket_i} / {num_buckets}')
+
+        ds = []
+        for i in range(num_generations_per_bucket):
+            d = 0.0
+            x = bucket_x
+            y = bucket_y
+            z = 20.0
+            for level in range(1, 13):
+                spawns = ff.generate_level(level, x, y, z)
+                # we order spawns from farthest to nearest to the start position
+                # this is not the ideal heuristics, but fairly close to what actually happens
+                # TODO: TSP and actual road distance? needs pathfinding
+                ordered_spawns = sorted(spawns, key=lambda s: -dist_3d(s.x, s.y, s.z, bucket_x, bucket_y, 20.0))
+                for s in ordered_spawns:
+                    d += dist_3d(x, y, z, s.x, s.y, s.z)
+                    x = s.x
+                    y = s.y
+                    z = s.z
+            ds.append(d)
+        return sum(ds) / len(ds)
+
+    bx, by = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
+    bz = gen_bucket(bx, by)
+
+    RADAR_IMAGE = im = plt.imread('./assets/radar_bw.png')
+
+    plt.rcParams["figure.figsize"] = [9, 9]
+    fig, ax = plt.subplots()
+    im = ax.imshow(im, extent=[-3000, 3000, -3000, 3000])
+    draw_zones(ax)
+
+    c = ax.pcolormesh(bx, by, bz, cmap='Reds', alpha=0.75)
     fig.colorbar(c, ax=ax)
 
     plt.show()
@@ -410,4 +522,7 @@ plt.show()
 
 ff = FirefighterMission(0)
 #plot_average_distance_to_farthest_spawn(ff, 1, 2700.0, -1200.0, 3000.0, -600.0, 128, 1)
-plot_average_distance_to_farthest_spawn(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 8)
+#plot_probability_of_multizone_split(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 8)
+#plot_probability_of_multizone_split(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 1024, 4)
+#plot_average_distance_between_spawns(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 2048, 64)
+plot_average_total_firefighter_distance(ff, 2500.0, -1900.0, 2950.0, 200.0, 1024, 1)

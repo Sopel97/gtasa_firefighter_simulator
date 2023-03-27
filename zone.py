@@ -1,3 +1,6 @@
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+
 class Zone:
     def __init__(self, name, min_x, min_y, min_z, max_x, max_y, max_z):
         self.name = name
@@ -403,3 +406,11 @@ def same_zone(x0, y0, z0, x1, y1, z1):
     if zone0 is None or zone1 is None:
         return False
     return zone0.name == zone1.name
+
+def draw_zones(ax):
+    for zone in ZONES:
+        x = zone.min_x
+        y = zone.min_y
+        w = zone.max_x - x
+        h = zone.max_y - y
+        ax.add_patch(Rectangle((x, y), w, h, edgecolor = 'blue', fill=False, lw=1))
