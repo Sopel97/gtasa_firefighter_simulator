@@ -306,3 +306,15 @@ ff = FirefighterMission(0)
 spawns = ff.generate_level(12, 2865.0, -798.0, 20.0)
 for spawn in spawns:
     print(spawn.x, spawn.y, spawn.z, spawn.num_attempts, get_zone(spawn.x, spawn.y, spawn.z).name)
+
+d = []
+for i in range(10):
+    print(i)
+    spawns = ff.generate_level(12, 2865.0, -798.0, 20.0)
+    d0 = dist_3d(spawns[0].x, spawns[0].y, spawns[0].z, spawns[1].x, spawns[1].y, spawns[1].z)
+    d1 = dist_3d(spawns[1].x, spawns[1].y, spawns[1].z, spawns[2].x, spawns[2].y, spawns[2].z)
+    d2 = dist_3d(spawns[2].x, spawns[2].y, spawns[2].z, spawns[0].x, spawns[0].y, spawns[0].z)
+    d.append(d0+d1+d2 - max(d0, d1, d2))
+print('Min: ', min(d))
+print('Max: ', max(d))
+print('Avg: ', sum(d) / len(d))
