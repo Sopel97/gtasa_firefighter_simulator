@@ -4,6 +4,7 @@ import random
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.widgets import Button
+from sklearn.neighbors import KDTree
 
 from zone import *
 
@@ -173,6 +174,24 @@ class World:
                 for i in range(num_navi_nodes):
                     self.link_lengths.append(ss.read_next_bytes(1))
 
+        self.ff_acceleration_nodes = []
+        ff_acceleration_coords = []
+        for nodes in self.vehicle_nodes:
+            for node in nodes:
+                if node.dead_end or node.is_disabled or node.boats:
+                    continue
+                ff_acceleration_coords.append([node.x, node.y, node.z * 3.0])
+                self.ff_acceleration_nodes.append(node)
+        self.ff_acceleration = KDTree(ff_acceleration_coords, metric='manhattan')
+
+    def find_node_for_firefighter_spawn(self, x, y, z, max_dist):
+        d, i = self.ff_acceleration.query([[x, y, z]], k=1)
+        node = self.ff_acceleration_nodes[i[0][0]]
+        dist = abs(node.x - x) + abs(node.y - y) + 3 * abs(node.z - z)
+        if dist < max_dist:
+            return node
+        return None
+
     def find_vehicle_node_closest_to_coords(self, x, y, z, max_dist, boats=False, allow_dead_ends=False, allow_disabled=False):
         closest_node = None
         closest_dist = max_dist
@@ -226,7 +245,7 @@ class FirefighterMission:
         max_y = y + rand_radius
         xx = random.uniform(min_x, max_x)
         yy = random.uniform(min_y, max_y)
-        nearest_node = WORLD.find_vehicle_node_closest_to_coords(xx, yy, z, 500)
+        nearest_node = WORLD.find_node_for_firefighter_spawn(xx, yy, z, 500)
 
         # No node nearby
         if nearest_node is None:
@@ -306,8 +325,9 @@ class FirefighterMission:
         return spawns
 
 '''
+ff = FirefighterMission(0)
 d = []
-for i in range(10):
+for i in range(1000):
     print(i)
     spawns = ff.generate_level(12, 2865.0, -798.0, 20.0)
     d0 = dist_3d(spawns[0].x, spawns[0].y, spawns[0].z, spawns[1].x, spawns[1].y, spawns[1].z)
