@@ -87,14 +87,26 @@ class VehicleNode:
 
         unknown = flags_stream.read_next_int(4)
 
+class NaviNode:
+    SIZEOF = 14
+    def __init__(self, data):
+        assert len(data) == NaviNode.SIZEOF
+
+        ss = StructStream(data)
+
+
+
 class World:
     def __init__(self):
-        self.vehicle_nodes = []
+        self.vehicle_nodes = [None] * 64
         for filename in glob.glob(NODES_GLOB):
             with open(filename, 'rb') as file:
                 data = file.read()
-                self.vehicle_nodes += self.extract_vehicle_nodes(data)
-        print(f'Loaded {len(self.vehicle_nodes)} vehicle nodes.')
+                nodes = self.extract_vehicle_nodes(data)
+                assert len(nodes) > 0
+                area_id = nodes[0].area_id
+                assert area_id < 64
+                self.vehicle_nodes[area_id] = nodes
 
     def extract_vehicle_nodes(self, nodes_data):
         ss = StructStream(nodes_data)
