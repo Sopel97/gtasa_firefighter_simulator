@@ -66,7 +66,7 @@ class VehicleNode:
         self.link_id = ss.read_next('<H', 2)
         self.area_id = ss.read_next('<H', 2)
         self.node_id = ss.read_next('<H', 2)
-        self.path_width = ss.read_next('<B', 1)
+        self.path_width = ss.read_next('<B', 1) / 8
         self.flood_fill = ss.read_next('<B', 1)
 
         flags_stream = BitStream(ss.read_next('<L', 4))
@@ -235,6 +235,9 @@ def dist_3d(x0, y0, z0, x1, y1, z1):
 def dist_3d_manhattan(x0, y0, z0, x1, y1, z1):
     return abs(x0-x1) + abs(y0-y1) + abs(z0-z1)
 
+def dist_3d_max(x0, y0, z0, x1, y1, z1):
+    return max([abs(x0-x1), abs(y0-y1), abs(z0-z1)])
+
 class FirefighterMission:
     def __init__(self, num_unlocked_cities=0):
         self.num_unlocked_cities = num_unlocked_cities
@@ -336,7 +339,7 @@ def generate_buckets(min_x, min_y, max_x, max_y, num_buckets):
     x_buckets = max(1, round(width / bucket_size))
     y_buckets = max(1, round(height / bucket_size))
     x, y = np.meshgrid(np.linspace(min_x, max_x, x_buckets), np.linspace(min_y, max_y, y_buckets))
-    return x, y
+    return x, y, bucket_size
 
 def plot_average_distance_to_farthest_spawn(ff, level, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket):
     bucket_i = 0
@@ -435,13 +438,21 @@ def plot_probability_of_multizone_split(ff, level, min_x, min_y, max_x, max_y, n
 
     plt.show()
 
-def plot_average_total_firefighter_distance(ff, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket):
+def plot_average_total_firefighter_distance(ff, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket, only_near_nodes=False):
     bucket_i = 0
+    bx, by, bucket_size = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
+
     @np.vectorize
     def gen_bucket(bucket_x, bucket_y):
         nonlocal bucket_i
+        nonlocal bucket_size
         bucket_i += 1
         print(f'Processing bucket: {bucket_i} / {num_buckets}')
+
+        if only_near_nodes:
+            nearest_node = WORLD.find_node_for_firefighter_spawn(bucket_x, bucket_y, 20.0, 3000.0)
+            if dist_3d_max(nearest_node.x, nearest_node.y, nearest_node.z, bucket_x, bucket_y, 20.0) > bucket_size + nearest_node.path_width:
+                return None
 
         ds = []
         for i in range(num_generations_per_bucket):
@@ -463,7 +474,63 @@ def plot_average_total_firefighter_distance(ff, min_x, min_y, max_x, max_y, num_
             ds.append(d)
         return sum(ds) / len(ds)
 
-    bx, by = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
+    bz = gen_bucket(bx, by)
+
+    RADAR_IMAGE = im = plt.imread('./assets/radar_bw.png')
+
+    plt.rcParams["figure.figsize"] = [9, 9]
+    fig, ax = plt.subplots()
+    im = ax.imshow(im, extent=[-3000, 3000, -3000, 3000])
+    draw_zones(ax)
+
+    c = ax.pcolormesh(bx, by, bz, cmap='Reds', alpha=0.75)
+    fig.colorbar(c, ax=ax)
+
+    plt.show()
+
+def plot_probability_that_firefighter_stays_on_coast(ff, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket, only_near_nodes=False):
+    bucket_i = 0
+    bx, by, bucket_size = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
+
+    @np.vectorize
+    def gen_bucket(bucket_x, bucket_y):
+        nonlocal bucket_i
+        nonlocal bucket_size
+        bucket_i += 1
+        print(f'Processing bucket: {bucket_i} / {num_buckets}')
+
+        if only_near_nodes:
+            nearest_node = WORLD.find_node_for_firefighter_spawn(bucket_x, bucket_y, 20.0, 3000.0)
+            if dist_3d_max(nearest_node.x, nearest_node.y, nearest_node.z, bucket_x, bucket_y, 20.0) > bucket_size + nearest_node.path_width:
+                return None
+
+        ds = []
+        for i in range(num_generations_per_bucket):
+            d = 0.0
+            x = bucket_x
+            y = bucket_y
+            z = 20.0
+            ok = 1
+            for level in range(1, 13):
+                spawns = ff.generate_level(level, x, y, z)
+                # we order spawns from farthest to nearest to the start position
+                # this is not the ideal heuristics, but fairly close to what actually happens
+                # TODO: TSP and actual road distance? needs pathfinding
+                ordered_spawns = sorted(spawns, key=lambda s: -dist_3d(s.x, s.y, s.z, bucket_x, bucket_y, 20.0))
+                for s in ordered_spawns:
+                    d += dist_3d_manhattan(x, y, z, s.x, s.y, s.z)
+                    x = s.x
+                    y = s.y
+                    z = s.z
+                    if s.y > -100 or s.x < 2650 or (s.x < 2800 and s.y < -600):
+                        ok = False
+                        break
+                if not ok:
+                    break
+
+            ds.append(ok)
+        return sum(ds) / len(ds)
+
     bz = gen_bucket(bx, by)
 
     RADAR_IMAGE = im = plt.imread('./assets/radar_bw.png')
@@ -528,4 +595,5 @@ ff = FirefighterMission(0)
 #plot_probability_of_multizone_split(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 8)
 #plot_probability_of_multizone_split(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 1024, 4)
 #plot_average_distance_between_spawns(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 2048, 64)
-plot_average_total_firefighter_distance(ff, 2500.0, -1900.0, 2950.0, 200.0, 1024, 1)
+#plot_average_total_firefighter_distance(ff, 2500.0, -1900.0, 2950.0, 200.0, 1024, 8, True)
+plot_probability_that_firefighter_stays_on_coast(ff, 2500.0, -1900.0, 2950.0, 200.0, 512, 100, True)
