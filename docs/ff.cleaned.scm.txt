@@ -20,8 +20,8 @@ increment_mission_attempts
 060A: create_decision_maker_type 0 store_to 165@ // decision\allowed\m_.ped files
 054C: use_GXT_table 'FIRETRK'
 08F8: display_stat_update_box 0
-162@ = 0.0
-$8215 = 0
+$num_attempts = 0.0
+$firefighter_time = 0
 79@ = 0
 80@ = 0
 $8214 = 0
@@ -29,9 +29,9 @@ $8214 = 0
 83@ = 0
 82@ = 0
 121@ = 7.0
-$8213 = 1
+$firefighter_level = 1
 77@ = 0
-126@ = 0
+$car_model = 0
 78@ = 0
 84@ = 0
 35@ = -1
@@ -134,118 +134,118 @@ else_jump @FIRETRU_789
 if
   125@ == 25
 else_jump @FIRETRU_1027
-04AF: 126@ = 405 // = constant
+04AF: $car_model = 405 // = constant
 
 :FIRETRU_1027
 if
   125@ == 26
 else_jump @FIRETRU_1053
-04AF: 126@ = 418 // = constant
+04AF: $car_model = 418 // = constant
 
 :FIRETRU_1053
 if
   125@ == 27
 else_jump @FIRETRU_1079
-04AF: 126@ = 421 // = constant
+04AF: $car_model = 421 // = constant
 
 :FIRETRU_1079
 if
   125@ == 28
 else_jump @FIRETRU_1105
-04AF: 126@ = 400 // = constant
+04AF: $car_model = 400 // = constant
 
 :FIRETRU_1105
 if
   125@ == 29
 else_jump @FIRETRU_1131
-04AF: 126@ = 404 // = constant
+04AF: $car_model = 404 // = constant
 
 :FIRETRU_1131
 if
   125@ == 30
 else_jump @FIRETRU_1157
-04AF: 126@ = 445 // = constant
+04AF: $car_model = 445 // = constant
 
 :FIRETRU_1157
 if
   125@ == 31
 else_jump @FIRETRU_1183
-04AF: 126@ = 466 // = constant
+04AF: $car_model = 466 // = constant
 
 :FIRETRU_1183
 if
   125@ == 32
 else_jump @FIRETRU_1209
-04AF: 126@ = 467 // = constant
+04AF: $car_model = 467 // = constant
 
 :FIRETRU_1209
 if
   125@ == 33
 else_jump @FIRETRU_1235
-04AF: 126@ = 479 // = constant
+04AF: $car_model = 479 // = constant
 
 :FIRETRU_1235
 if
   125@ == 34
 else_jump @FIRETRU_1261
-04AF: 126@ = 413 // = constant
+04AF: $car_model = 413 // = constant
 
 :FIRETRU_1261
 if
   125@ == 35
 else_jump @FIRETRU_1287
-04AF: 126@ = 420 // = constant
+04AF: $car_model = 420 // = constant
 
 :FIRETRU_1287
 if
   125@ == 36
 else_jump @FIRETRU_1313
-04AF: 126@ = 438 // = constant
+04AF: $car_model = 438 // = constant
 
 :FIRETRU_1313
 if
   125@ == 37
 else_jump @FIRETRU_1339
-04AF: 126@ = 440 // = constant
+04AF: $car_model = 440 // = constant
 
 :FIRETRU_1339
 if
   125@ == 38
 else_jump @FIRETRU_1365
-04AF: 126@ = 551 // = constant
+04AF: $car_model = 551 // = constant
 
 :FIRETRU_1365
 if
   125@ == 39
 else_jump @FIRETRU_1391
-04AF: 126@ = 470 // = constant
+04AF: $car_model = 470 // = constant
 
 :FIRETRU_1391
 if
   125@ == 40
 else_jump @FIRETRU_1417
-04AF: 126@ = 482 // = constant
+04AF: $car_model = 482 // = constant
 
 :FIRETRU_1417
 if
   125@ == 41
 else_jump @FIRETRU_1443
-04AF: 126@ = 546 // = constant
+04AF: $car_model = 546 // = constant
 
 :FIRETRU_1443
 if
   125@ == 42
 else_jump @FIRETRU_1469
-04AF: 126@ = 492 // = constant
+04AF: $car_model = 492 // = constant
 
 :FIRETRU_1469
 if
   125@ == 43
 else_jump @FIRETRU_1495
-04AF: 126@ = 560 // = constant
+04AF: $car_model = 560 // = constant
 
 :FIRETRU_1495
-Model.Load(126@)
+Model.Load($car_model)
 wait 0
 FIRETRU_8348()
 if
@@ -255,10 +255,10 @@ jump @FIRETRU_10464
 
 :FIRETRU_1536
 if
-   not Model.Available(126@)
+   not Model.Available($car_model)
 else_jump @FIRETRU_1600
 wait 0
-Model.Load(126@)
+Model.Load($car_model)
 FIRETRU_8348()
 if
   77@ == 1
@@ -271,13 +271,13 @@ jump @FIRETRU_1536
 :FIRETRU_1600
 119@ = 0
 FIRETRU_5971()
-0087: 127@ = 153@ // (float)
-0087: 128@ = 154@ // (float)
-0087: 129@ = 155@ // (float)
+0087: 127@ = $node1_x // (float)
+0087: 128@ = $node1_y // (float)
+0087: 129@ = $node1_z // (float)
 0395: clear_area 0 at 127@ 128@ 129@ radius 5.0
-35@ = Car.Create(126@, 127@, 128@, 129@)
+35@ = Car.Create($car_model, 127@, 128@, 129@)
 0574: set_car 35@ keep_position 1
-Car.Angle(35@) = 160@
+Car.Angle(35@) = $node_angle
 0587: enable_car 35@ validate_position 0
 Car.SetImmunities(35@, 0, 1, 0, 0, 0)
 0208: 123@ = random_float_in_ranges 0.0 359.9
@@ -290,14 +290,14 @@ Marker.Disable(64@)
 03ED: set_car 35@ disable_flipped_explosion_when_empty 1
 119@ = 1
 88@ += 1
-0560: create_random_actor_in_car 35@ handle_as 40@
-060B: set_actor 40@ decision_maker_to 165@
-0588: disable_actor 40@ validate_position 0
-02A9: set_actor 40@ immune_to_nonplayer 1
-Actor.SetImmunities(40@, 0, 1, 1, 0, 0)
+0560: create_random_actor_in_car 35@ handle_as $player_actor
+060B: set_actor $player_actor decision_maker_to 165@
+0588: disable_actor $player_actor validate_position 0
+02A9: set_actor $player_actor immune_to_nonplayer 1
+Actor.SetImmunities($player_actor, 0, 1, 1, 0, 0)
 88@ += 1
 if
-  $8213 > 2
+  $firefighter_level > 2
 else_jump @FIRETRU_1913
 0561: 41@ = create_passenger_in_car 35@ seat 0
 060B: set_actor 41@ decision_maker_to 165@
@@ -308,7 +308,7 @@ Actor.SetImmunities(41@, 0, 1, 1, 0, 0)
 
 :FIRETRU_1913
 if
-  $8213 > 3
+  $firefighter_level > 3
 else_jump @FIRETRU_1985
 0561: 42@ = create_passenger_in_car 35@ seat 1
 060B: set_actor 42@ decision_maker_to 165@
@@ -319,16 +319,16 @@ Actor.SetImmunities(42@, 0, 1, 1, 0, 0)
 
 :FIRETRU_1985
 if
-  $8213 > 4
+  $firefighter_level > 4
 else_jump @FIRETRU_2176
 FIRETRU_5971()
-0087: 130@ = 153@ // (float)
-0087: 131@ = 154@ // (float)
-0087: 132@ = 155@ // (float)
+0087: 130@ = $node1_x // (float)
+0087: 131@ = $node1_y // (float)
+0087: 132@ = $node1_z // (float)
 0395: clear_area 0 at 130@ 131@ 132@ radius 5.0
-36@ = Car.Create(126@, 130@, 131@, 132@)
+36@ = Car.Create($car_model, 130@, 131@, 132@)
 0574: set_car 36@ keep_position 1
-Car.Angle(36@) = 160@
+Car.Angle(36@) = $node_angle
 0587: enable_car 36@ validate_position 0
 Car.SetImmunities(36@, 0, 1, 0, 0, 0)
 039F: set_car 36@ race_to 127@ 128@
@@ -343,7 +343,7 @@ Marker.Disable(65@)
 
 :FIRETRU_2176
 if
-  $8213 > 5
+  $firefighter_level > 5
 else_jump @FIRETRU_2246
 0560: create_random_actor_in_car 36@ handle_as 43@
 060B: set_actor 43@ decision_maker_to 165@
@@ -354,7 +354,7 @@ Actor.SetImmunities(43@, 0, 1, 1, 0, 0)
 
 :FIRETRU_2246
 if
-  $8213 > 6
+  $firefighter_level > 6
 else_jump @FIRETRU_2318
 0561: 44@ = create_passenger_in_car 36@ seat 0
 060B: set_actor 44@ decision_maker_to 165@
@@ -365,7 +365,7 @@ Actor.SetImmunities(44@, 0, 1, 1, 0, 0)
 
 :FIRETRU_2318
 if
-  $8213 > 7
+  $firefighter_level > 7
 else_jump @FIRETRU_2390
 0561: 45@ = create_passenger_in_car 36@ seat 1
 060B: set_actor 45@ decision_maker_to 165@
@@ -376,16 +376,16 @@ Actor.SetImmunities(45@, 0, 1, 1, 0, 0)
 
 :FIRETRU_2390
 if
-  $8213 > 8
+  $firefighter_level > 8
 else_jump @FIRETRU_2581
 FIRETRU_5971()
-0087: 133@ = 153@ // (float)
-0087: 134@ = 154@ // (float)
-0087: 135@ = 155@ // (float)
+0087: 133@ = $node1_x // (float)
+0087: 134@ = $node1_y // (float)
+0087: 135@ = $node1_z // (float)
 0395: clear_area 0 at 133@ 134@ 135@ radius 5.0
-37@ = Car.Create(126@, 133@, 134@, 135@)
+37@ = Car.Create($car_model, 133@, 134@, 135@)
 0574: set_car 37@ keep_position 1
-Car.Angle(37@) = 160@
+Car.Angle(37@) = $node_angle
 0587: enable_car 37@ validate_position 0
 Car.SetImmunities(37@, 0, 1, 0, 0, 0)
 039F: set_car 37@ race_to 127@ 128@
@@ -399,9 +399,9 @@ Marker.Disable(66@)
 88@ += 1
 
 :FIRETRU_2581
-Model.Destroy(126@)
+Model.Destroy($car_model)
 if
-  $8213 > 9
+  $firefighter_level > 9
 else_jump @FIRETRU_2656
 0560: create_random_actor_in_car 37@ handle_as 46@
 060B: set_actor 46@ decision_maker_to 165@
@@ -412,7 +412,7 @@ Actor.SetImmunities(46@, 0, 1, 1, 0, 0)
 
 :FIRETRU_2656
 if
-  $8213 > 10
+  $firefighter_level > 10
 else_jump @FIRETRU_2728
 0561: 47@ = create_passenger_in_car 37@ seat 0
 060B: set_actor 47@ decision_maker_to 165@
@@ -423,7 +423,7 @@ Actor.SetImmunities(47@, 0, 1, 1, 0, 0)
 
 :FIRETRU_2728
 if
-  $8213 > 11
+  $firefighter_level > 11
 else_jump @FIRETRU_2800
 0561: 48@ = create_passenger_in_car 37@ seat 1
 060B: set_actor 48@ decision_maker_to 165@
@@ -459,32 +459,32 @@ jump @FIRETRU_10464
 
 :FIRETRU_2901
 if
-   not Actor.Dead(40@)
+   not Actor.Dead($player_actor)
 else_jump @FIRETRU_3008
-Actor.StorePos(40@, 146@, 147@, 148@)
-0843: get_zone_at 146@ 147@ 148@ nameA_to s$8216 // 8-byte string
+Actor.StorePos($player_actor, $player_x, $player_y, $player_z)
+0843: get_zone_at $player_x $player_y $player_z nameA_to s$zone_requirement // 8-byte string
 if
-  5 > $8213
+  5 > $firefighter_level
 else_jump @FIRETRU_2989
-0384: show_text_1string GXT 'F_START' string s$8216 time 5000 1
+0384: show_text_1string GXT 'F_START' string s$zone_requirement time 5000 1
 jump @FIRETRU_3008
 
 :FIRETRU_2989
-0384: show_text_1string GXT 'F_STAR1' string s$8216 time 5000 1
+0384: show_text_1string GXT 'F_STAR1' string s$zone_requirement time 5000 1
 
 :FIRETRU_3008
 if
-  $8213 == 1
+  $firefighter_level == 1
 else_jump @FIRETRU_3038
 88@ -= 1
-Actor.DestroyInstantly(40@)
+Actor.DestroyInstantly($player_actor)
 
 :FIRETRU_3038
 if
   80@ == 0
 else_jump @FIRETRU_3104
-03C3: set_timer_to $8215 type 1 GXT 'FIRTIME' // global_variable
-04F7: status_text $8213 type 0 line 1 GXT 'FLEV' // global_variable
+03C3: set_timer_to $firefighter_time type 1 GXT 'FIRTIME' // global_variable
+04F7: status_text $firefighter_level type 0 line 1 GXT 'FLEV' // global_variable
 80@ = 1
 jump @FIRETRU_3108
 
@@ -492,7 +492,7 @@ jump @FIRETRU_3108
 0396: pause_timer 0
 
 :FIRETRU_3108
-008B: 85@ = $8213 // (int)
+008B: 85@ = $firefighter_level // (int)
 85@ -= 4
 01BD: $CURRENT_TIME_IN_MS2 = current_time_in_ms
 008B: 87@ = $CURRENT_TIME_IN_MS2 // (int)
@@ -502,7 +502,7 @@ jump @FIRETRU_3108
 if
 0735:   is_keyboard_key_pressed 32
 else_jump @FIRETRU_3169
-$8215 = 300000
+$firefighter_time = 300000
 
 :FIRETRU_3169
 if
@@ -516,7 +516,7 @@ else_jump @FIRETRU_3215
 
 :FIRETRU_3215
 if
-  $8213 > 4
+  $firefighter_level > 4
 else_jump @FIRETRU_3263
 if
    not Car.Wrecked(36@)
@@ -526,7 +526,7 @@ else_jump @FIRETRU_3263
 
 :FIRETRU_3263
 if
-  $8213 > 8
+  $firefighter_level > 8
 else_jump @FIRETRU_3311
 if
    not Car.Wrecked(37@)
@@ -539,22 +539,22 @@ if
 0735:   is_keyboard_key_pressed 83
 else_jump @FIRETRU_3347
 $1489 = 0
-$8213 = 12
+$firefighter_level = 12
 jump @FIRETRU_9900
 
 :FIRETRU_3347
 if
 0735:   is_keyboard_key_pressed 90
 else_jump @FIRETRU_3515
-014F: stop_timer $8215
+014F: stop_timer $firefighter_time
 0151: remove_status_text $8214
-0151: remove_status_text $8213
+0151: remove_status_text $firefighter_level
 03D5: remove_text 'F_START'
 03D5: remove_text 'F_STAR1'
 03D5: remove_text 'FIRELVL'
 00BA: show_text_styled GXT 'F_PASS1' time 5000 style 5
-008B: 79@ = $8213 // (int)
-006E: 79@ *= $8213 // (int)
+008B: 79@ = $firefighter_level // (int)
+006E: 79@ *= $firefighter_level // (int)
 79@ *= 50
 005A: 83@ += 79@ // (int)
 01E3: show_text_1number_styled GXT 'REWARD' number 79@ time 6000 style 6
@@ -639,16 +639,16 @@ else_jump @FIRETRU_3992
 0574: set_car 35@ keep_position 0
 104@ = 1
 if
-  $8213 > 1
+  $firefighter_level > 1
 else_jump @FIRETRU_3910
 if
-   not Actor.Dead(40@)
+   not Actor.Dead($player_actor)
 else_jump @FIRETRU_3910
-0588: disable_actor 40@ validate_position 1
+0588: disable_actor $player_actor validate_position 1
 
 :FIRETRU_3910
 if
-  $8213 > 2
+  $firefighter_level > 2
 else_jump @FIRETRU_3951
 if
    not Actor.Dead(41@)
@@ -657,7 +657,7 @@ else_jump @FIRETRU_3951
 
 :FIRETRU_3951
 if
-  $8213 > 3
+  $firefighter_level > 3
 else_jump @FIRETRU_3992
 if
    not Actor.Dead(42@)
@@ -675,16 +675,16 @@ else_jump @FIRETRU_4161
 0574: set_car 35@ keep_position 1
 104@ = 0
 if
-  $8213 > 1
+  $firefighter_level > 1
 else_jump @FIRETRU_4079
 if
-   not Actor.Dead(40@)
+   not Actor.Dead($player_actor)
 else_jump @FIRETRU_4079
-0588: disable_actor 40@ validate_position 0
+0588: disable_actor $player_actor validate_position 0
 
 :FIRETRU_4079
 if
-  $8213 > 2
+  $firefighter_level > 2
 else_jump @FIRETRU_4120
 if
    not Actor.Dead(41@)
@@ -693,7 +693,7 @@ else_jump @FIRETRU_4120
 
 :FIRETRU_4120
 if
-  $8213 > 3
+  $firefighter_level > 3
 else_jump @FIRETRU_4161
 if
    not Actor.Dead(42@)
@@ -702,7 +702,7 @@ else_jump @FIRETRU_4161
 
 :FIRETRU_4161
 if
-  $8213 > 4
+  $firefighter_level > 4
 else_jump @FIRETRU_4963
 if
    not Car.Wrecked(36@)
@@ -717,7 +717,7 @@ else_jump @FIRETRU_4393
 0574: set_car 36@ keep_position 0
 105@ = 1
 if
-  $8213 > 5
+  $firefighter_level > 5
 else_jump @FIRETRU_4311
 if
    not Actor.Dead(43@)
@@ -726,7 +726,7 @@ else_jump @FIRETRU_4311
 
 :FIRETRU_4311
 if
-  $8213 > 6
+  $firefighter_level > 6
 else_jump @FIRETRU_4352
 if
    not Actor.Dead(44@)
@@ -735,7 +735,7 @@ else_jump @FIRETRU_4352
 
 :FIRETRU_4352
 if
-  $8213 > 7
+  $firefighter_level > 7
 else_jump @FIRETRU_4393
 if
    not Actor.Dead(45@)
@@ -753,7 +753,7 @@ else_jump @FIRETRU_4562
 0574: set_car 36@ keep_position 1
 105@ = 0
 if
-  $8213 > 5
+  $firefighter_level > 5
 else_jump @FIRETRU_4480
 if
    not Actor.Dead(43@)
@@ -762,7 +762,7 @@ else_jump @FIRETRU_4480
 
 :FIRETRU_4480
 if
-  $8213 > 6
+  $firefighter_level > 6
 else_jump @FIRETRU_4521
 if
    not Actor.Dead(44@)
@@ -771,7 +771,7 @@ else_jump @FIRETRU_4521
 
 :FIRETRU_4521
 if
-  $8213 > 7
+  $firefighter_level > 7
 else_jump @FIRETRU_4562
 if
    not Actor.Dead(45@)
@@ -780,7 +780,7 @@ else_jump @FIRETRU_4562
 
 :FIRETRU_4562
 if
-  $8213 > 8
+  $firefighter_level > 8
 else_jump @FIRETRU_4963
 if
    not Car.Wrecked(37@)
@@ -794,7 +794,7 @@ else_jump @FIRETRU_4794
 0587: enable_car 37@ validate_position 1
 0574: set_car 37@ keep_position 0
 if
-  $8213 > 9
+  $firefighter_level > 9
 else_jump @FIRETRU_4705
 if
    not Actor.Dead(46@)
@@ -803,7 +803,7 @@ else_jump @FIRETRU_4705
 
 :FIRETRU_4705
 if
-  $8213 > 10
+  $firefighter_level > 10
 else_jump @FIRETRU_4746
 if
    not Actor.Dead(47@)
@@ -812,7 +812,7 @@ else_jump @FIRETRU_4746
 
 :FIRETRU_4746
 if
-  $8213 > 11
+  $firefighter_level > 11
 else_jump @FIRETRU_4787
 if
    not Actor.Dead(48@)
@@ -833,7 +833,7 @@ else_jump @FIRETRU_4963
 0574: set_car 37@ keep_position 1
 106@ = 0
 if
-  $8213 > 9
+  $firefighter_level > 9
 else_jump @FIRETRU_4881
 if
    not Actor.Dead(46@)
@@ -842,7 +842,7 @@ else_jump @FIRETRU_4881
 
 :FIRETRU_4881
 if
-  $8213 > 10
+  $firefighter_level > 10
 else_jump @FIRETRU_4922
 if
    not Actor.Dead(47@)
@@ -851,7 +851,7 @@ else_jump @FIRETRU_4922
 
 :FIRETRU_4922
 if
-  $8213 > 11
+  $firefighter_level > 11
 else_jump @FIRETRU_4963
 if
    not Actor.Dead(48@)
@@ -869,9 +869,9 @@ FIRETRU_8684()
 0085: 92@ = 90@ // (int)
 0085: 64@ = 63@ // (int)
 if
-  $8213 > 1
+  $firefighter_level > 1
 else_jump @FIRETRU_5114
-0085: 39@ = 40@ // (int)
+0085: 39@ = $player_actor // (int)
 0085: 91@ = 95@ // (int)
 0085: 53@ = 54@ // (int)
 0085: 67@ = 68@ // (int)
@@ -882,7 +882,7 @@ FIRETRU_9212()
 
 :FIRETRU_5114
 if
-  $8213 > 2
+  $firefighter_level > 2
 else_jump @FIRETRU_5195
 0085: 39@ = 41@ // (int)
 0085: 91@ = 96@ // (int)
@@ -895,7 +895,7 @@ FIRETRU_9212()
 
 :FIRETRU_5195
 if
-  $8213 > 3
+  $firefighter_level > 3
 else_jump @FIRETRU_5276
 0085: 39@ = 42@ // (int)
 0085: 91@ = 97@ // (int)
@@ -908,7 +908,7 @@ FIRETRU_9212()
 
 :FIRETRU_5276
 if
-  $8213 > 4
+  $firefighter_level > 4
 else_jump @FIRETRU_5364
 0085: 34@ = 36@ // (int)
 0085: 49@ = 51@ // (int)
@@ -922,7 +922,7 @@ FIRETRU_8684()
 
 :FIRETRU_5364
 if
-  $8213 > 5
+  $firefighter_level > 5
 else_jump @FIRETRU_5445
 0085: 39@ = 43@ // (int)
 0085: 91@ = 98@ // (int)
@@ -935,7 +935,7 @@ FIRETRU_9212()
 
 :FIRETRU_5445
 if
-  $8213 > 6
+  $firefighter_level > 6
 else_jump @FIRETRU_5526
 0085: 39@ = 44@ // (int)
 0085: 91@ = 99@ // (int)
@@ -948,7 +948,7 @@ FIRETRU_9212()
 
 :FIRETRU_5526
 if
-  $8213 > 7
+  $firefighter_level > 7
 else_jump @FIRETRU_5607
 0085: 39@ = 45@ // (int)
 0085: 91@ = 100@ // (int)
@@ -961,7 +961,7 @@ FIRETRU_9212()
 
 :FIRETRU_5607
 if
-  $8213 > 8
+  $firefighter_level > 8
 else_jump @FIRETRU_5695
 0085: 34@ = 37@ // (int)
 0085: 49@ = 52@ // (int)
@@ -975,7 +975,7 @@ FIRETRU_8684()
 
 :FIRETRU_5695
 if
-  $8213 > 9
+  $firefighter_level > 9
 else_jump @FIRETRU_5776
 0085: 39@ = 46@ // (int)
 0085: 91@ = 101@ // (int)
@@ -988,7 +988,7 @@ FIRETRU_9212()
 
 :FIRETRU_5776
 if
-  $8213 > 10
+  $firefighter_level > 10
 else_jump @FIRETRU_5857
 0085: 39@ = 47@ // (int)
 0085: 91@ = 102@ // (int)
@@ -1001,7 +1001,7 @@ FIRETRU_9212()
 
 :FIRETRU_5857
 if
-  $8213 > 11
+  $firefighter_level > 11
 else_jump @FIRETRU_5938
 0085: 39@ = 48@ // (int)
 0085: 91@ = 103@ // (int)
@@ -1023,16 +1023,16 @@ jump @FIRETRU_3144
 
 :FIRETRU_5971
 wait 0
-120@ = 0
+$is_spawn_ok = 0
 TIMERA = 0
 
 :FIRETRU_5989
 if
-  120@ == 0
+  $is_spawn_ok == 0
 else_jump @FIRETRU_8079
-120@ = 1
+$is_spawn_ok = 1
 163@ = 1
-162@ += 1.0
+$num_attempts += 1.0
 if
    not Actor.Dead($PLAYER_ACTOR)
 else_jump @FIRETRU_6098
@@ -1100,73 +1100,73 @@ else_jump @FIRETRU_6335
 jump @FIRETRU_10464
 
 :FIRETRU_6335
-Actor.StorePos($PLAYER_ACTOR, 143@, 144@, 145@)
-008F: 156@ = integer $8213 to_float
-156@ *= 60.0
-005B: 156@ += 162@ // (float)
+Actor.StorePos($PLAYER_ACTOR, $player_x, $player_y, $player_z)
+008F: $rand_radius = integer $firefighter_level to_float
+$rand_radius *= 60.0
+005B: $rand_radius += $num_attempts // (float)
 if
-  170.0 > 156@
+  170.0 > $rand_radius
 else_jump @FIRETRU_6406
-156@ = 170.0
+$rand_radius = 170.0
 
 :FIRETRU_6406
-0087: 149@ = 143@ // (float)
-005B: 149@ += 156@ // (float)
-0087: 151@ = 143@ // (float)
-0063: 151@ -= 156@ // (float)
-0087: 150@ = 144@ // (float)
-005B: 150@ += 156@ // (float)
-0087: 152@ = 144@ // (float)
-0063: 152@ -= 156@ // (float)
-0208: 153@ = random_float_in_ranges 151@ 149@
-0208: 154@ = random_float_in_ranges 152@ 150@
-04B9: unknown_get_at 153@ 154@ 145@ height 10.0 radius 500.0 store_to 153@ 154@ 155@ 157@ 158@ 159@ 160@
+0087: $max_x = $player_x // (float)
+005B: $max_x += $rand_radius // (float)
+0087: $min_x = $player_x // (float)
+0063: $min_x -= $rand_radius // (float)
+0087: $max_y = $player_y // (float)
+005B: $max_y += $rand_radius // (float)
+0087: $min_y = $player_y // (float)
+0063: $min_y -= $rand_radius // (float)
+0208: $node1_x = random_float_in_ranges $min_x $max_x
+0208: $node1_y = random_float_in_ranges $min_y $max_y
+04B9: find_nearest_straight_road $node1_x $node1_y $player_z height 10.0 radius 500.0 store_to $node1_x $node1_y $node1_z $node2_x $node2_y $node2_z $node_angle
 if
-  153@ == 0.0
+  $node1_x == 0.0
 else_jump @FIRETRU_6625
 if
-  154@ == 0.0
+  $node1_y == 0.0
 else_jump @FIRETRU_6625
 if
-  157@ == 0.0
+  $node2_x == 0.0
 else_jump @FIRETRU_6625
 if
-  158@ == 0.0
+  $node2_y == 0.0
 else_jump @FIRETRU_6625
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_6625
 if
-  120@ == 1
+  $is_spawn_ok == 1
 else_jump @FIRETRU_6794
-050A: 124@ = distance_between_XYZ 143@ 144@ 145@ and_XYZ 153@ 154@ 155@
+050A: 124@ = distance_between_XYZ $player_x $player_y $player_z and_XYZ $node1_x $node1_y $node1_z
 if
   140.0 > 124@
 else_jump @FIRETRU_6694
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_6694
 if
   119@ == 1
 else_jump @FIRETRU_6780
 if
-  35.0 > 162@
+  35.0 > $num_attempts
 else_jump @FIRETRU_6773
-0843: get_zone_at 153@ 154@ 155@ nameA_to s$8218 // 8-byte string
+0843: get_zone_at $node1_x $node1_y $node1_z nameA_to s$node_zone // 8-byte string
 if
-85AD:   not  s$8218 == s$8216 // s$ == short
+85AD:   not  s$node_zone == s$zone_requirement // s$ == short
 else_jump @FIRETRU_6773
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_6773
 jump @FIRETRU_6794
 
 :FIRETRU_6780
-0843: get_zone_at 153@ 154@ 155@ nameA_to s$8216 // 8-byte string
+0843: get_zone_at $node1_x $node1_y $node1_z nameA_to s$zone_requirement // 8-byte string
 
 :FIRETRU_6794
 if
-  120@ == 1
+  $is_spawn_ok == 1
 else_jump @FIRETRU_7396
 0652: $STAT_UNLOCKED_CITIES_NUMBER = integer_stat 181
 if
@@ -1176,209 +1176,209 @@ if
   $STAT_UNLOCKED_CITIES_NUMBER == 0
 else_jump @FIRETRU_7154
 if and
-  78.4427 > 153@
-  -699.519 > 154@
+  78.4427 > $node1_x
+  -699.519 > $node1_y
 else_jump @FIRETRU_6894
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_6894
 if
-  120@ == 1
+  $is_spawn_ok == 1
 else_jump @FIRETRU_7154
 if and
-  -252.6557 > 153@
-  -285.766 > 154@
+  -252.6557 > $node1_x
+  -285.766 > $node1_y
 else_jump @FIRETRU_6950
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_6950
 if
-  120@ == 1
+  $is_spawn_ok == 1
 else_jump @FIRETRU_7154
 if
-  -948.3447 > 153@
+  -948.3447 > $node1_x
 else_jump @FIRETRU_6996
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_6996
 if
-  120@ == 1
+  $is_spawn_ok == 1
 else_jump @FIRETRU_7154
 if and
-  153@ > 1473.448
-  154@ > 403.7353
+  $node1_x > 1473.448
+  $node1_y > 403.7353
 else_jump @FIRETRU_7052
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_7052
 if
-  120@ == 1
+  $is_spawn_ok == 1
 else_jump @FIRETRU_7154
 if
-  154@ > 578.6325
+  $node1_y > 578.6325
 else_jump @FIRETRU_7098
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_7098
 if
-  120@ == 1
+  $is_spawn_ok == 1
 else_jump @FIRETRU_7154
 if and
-  837.5551 > 153@
-  154@ > 347.4097
+  837.5551 > $node1_x
+  $node1_y > 347.4097
 else_jump @FIRETRU_7154
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_7154
 if
-  120@ == 1
+  $is_spawn_ok == 1
 else_jump @FIRETRU_7396
 if
   $STAT_UNLOCKED_CITIES_NUMBER == 1
 else_jump @FIRETRU_7396
 if and
-  153@ > 1473.448
-  154@ > 403.7353
+  $node1_x > 1473.448
+  $node1_y > 403.7353
 else_jump @FIRETRU_7228
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_7228
 if
-  120@ == 1
+  $is_spawn_ok == 1
 else_jump @FIRETRU_7396
 if and
-  154@ > 578.6325
-  153@ > -1528.498
+  $node1_y > 578.6325
+  $node1_x > -1528.498
 else_jump @FIRETRU_7284
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_7284
 if
-  120@ == 1
+  $is_spawn_ok == 1
 else_jump @FIRETRU_7396
 if and
-  837.5551 > 153@
-  153@ > -1528.498
-  154@ > 347.4097
+  837.5551 > $node1_x
+  $node1_x > -1528.498
+  $node1_y > 347.4097
 else_jump @FIRETRU_7350
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_7350
 if
-  120@ == 1
+  $is_spawn_ok == 1
 else_jump @FIRETRU_7396
 if
-  154@ > 1380.0
+  $node1_y > 1380.0
 else_jump @FIRETRU_7396
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_7396
 if
-  120@ == 1
+  $is_spawn_ok == 1
 else_jump @FIRETRU_7596
 if
-  2150.0 > 153@
+  2150.0 > $node1_x
 else_jump @FIRETRU_7505
 if
-  153@ > 1970.0
+  $node1_x > 1970.0
 else_jump @FIRETRU_7505
 if
-  -2274.0 > 154@
+  -2274.0 > $node1_y
 else_jump @FIRETRU_7505
 if
-  154@ > -2670.0
+  $node1_y > -2670.0
 else_jump @FIRETRU_7505
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_7505
 if
-  2150.0 > 153@
+  2150.0 > $node1_x
 else_jump @FIRETRU_7596
 if
-  153@ > 1590.0
+  $node1_x > 1590.0
 else_jump @FIRETRU_7596
 if
-  -2397.0 > 154@
+  -2397.0 > $node1_y
 else_jump @FIRETRU_7596
 if
-  154@ > -2670.0
+  $node1_y > -2670.0
 else_jump @FIRETRU_7596
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_7596
 if
-  120@ == 1
+  $is_spawn_ok == 1
 else_jump @FIRETRU_7796
 if
-  -1070.0 > 153@
+  -1070.0 > $node1_x
 else_jump @FIRETRU_7705
 if
-  153@ > -1737.0
+  $node1_x > -1737.0
 else_jump @FIRETRU_7705
 if
-  -185.0 > 154@
+  -185.0 > $node1_y
 else_jump @FIRETRU_7705
 if
-  154@ > -590.0
+  $node1_y > -590.0
 else_jump @FIRETRU_7705
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_7705
 if
-  -1081.0 > 153@
+  -1081.0 > $node1_x
 else_jump @FIRETRU_7796
 if
-  153@ > -1600.0
+  $node1_x > -1600.0
 else_jump @FIRETRU_7796
 if
-  415.0 > 154@
+  415.0 > $node1_y
 else_jump @FIRETRU_7796
 if
-  154@ > -185.0
+  $node1_y > -185.0
 else_jump @FIRETRU_7796
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_7796
 if
-  120@ == 1
+  $is_spawn_ok == 1
 else_jump @FIRETRU_7905
 if
-  1733.0 > 153@
+  1733.0 > $node1_x
 else_jump @FIRETRU_7905
 if
-  153@ > 1500.0
+  $node1_x > 1500.0
 else_jump @FIRETRU_7905
 if
-  1702.0 > 154@
+  1702.0 > $node1_y
 else_jump @FIRETRU_7905
 if
-  154@ > 1529.0
+  $node1_y > 1529.0
 else_jump @FIRETRU_7905
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_7905
 if
-  120@ == 1
+  $is_spawn_ok == 1
 else_jump @FIRETRU_8068
 if
-  $8213 > 4
+  $firefighter_level > 4
 else_jump @FIRETRU_8068
-050A: 161@ = distance_between_XYZ 127@ 128@ 129@ and_XYZ 153@ 154@ 155@
+050A: 161@ = distance_between_XYZ 127@ 128@ 129@ and_XYZ $node1_x $node1_y $node1_z
 if
   20.0 > 161@
 else_jump @FIRETRU_7999
-120@ = 0
+$is_spawn_ok = 0
 jump @FIRETRU_8068
 
 :FIRETRU_7999
 if
-  $8213 > 8
+  $firefighter_level > 8
 else_jump @FIRETRU_8068
-050A: 161@ = distance_between_XYZ 130@ 131@ 132@ and_XYZ 153@ 154@ 155@
+050A: 161@ = distance_between_XYZ 130@ 131@ 132@ and_XYZ $node1_x $node1_y $node1_z
 if
   20.0 > 161@
 else_jump @FIRETRU_8068
-120@ = 0
+$is_spawn_ok = 0
 
 :FIRETRU_8068
 wait 0
@@ -1386,13 +1386,13 @@ jump @FIRETRU_5989
 
 :FIRETRU_8079
 if
-  $8213 > 4
+  $firefighter_level > 4
 else_jump @FIRETRU_8211
-050A: 161@ = distance_between_XYZ 127@ 128@ 129@ and_XYZ 153@ 154@ 155@
+050A: 161@ = distance_between_XYZ 127@ 128@ 129@ and_XYZ $node1_x $node1_y $node1_z
 if
-  $8213 > 8
+  $firefighter_level > 8
 else_jump @FIRETRU_8186
-050A: 161@ = distance_between_XYZ 130@ 131@ 132@ and_XYZ 153@ 154@ 155@
+050A: 161@ = distance_between_XYZ 130@ 131@ 132@ and_XYZ $node1_x $node1_y $node1_z
 161@ /= 4.0
 005B: 124@ += 161@ // (float)
 jump @FIRETRU_8204
@@ -1406,7 +1406,7 @@ jump @FIRETRU_8211
 
 :FIRETRU_8211
 if
-  9 > $8213
+  9 > $firefighter_level
 else_jump @FIRETRU_8254
 0087: 122@ = 124@ // (float)
 122@ /= 8.0
@@ -1419,15 +1419,15 @@ jump @FIRETRU_8272
 :FIRETRU_8272
 122@ *= 1000.0
 0092: 78@ = float 122@ to_integer
-005E: $8215 += 78@ // (int)
+005E: $firefighter_time += 78@ // (int)
 if
-  60000 > $8215
+  60000 > $firefighter_time
 else_jump @FIRETRU_8329
-$8215 = 60000
+$firefighter_time = 60000
 
 :FIRETRU_8329
 163@ = 0
-162@ = 0.0
+$num_attempts = 0.0
 return
 
 :FIRETRU_8348
@@ -1435,7 +1435,7 @@ if
   80@ == 1
 else_jump @FIRETRU_8411
 if
-  1 > $8215
+  1 > $firefighter_time
 else_jump @FIRETRU_8411
 00BE: text_clear_all
 00BC: show_text_highpriority GXT 'F_FAIL2' time 5000 flag 1
@@ -1617,8 +1617,8 @@ if
    not Actor.Driving(39@)
 else_jump @FIRETRU_9359
 0326: 53@ = create_actor 39@ fire
-Actor.StorePos(39@, 138@, 139@, 140@)
-05DA: AS_actor 39@ run_away_in_panic_from 138@ 139@ 140@ away_radius 20.0 timelimit -1
+Actor.StorePos(39@, 138@, 139@, 1$player_actor)
+05DA: AS_actor 39@ run_away_in_panic_from 138@ 139@ 1$player_actor away_radius 20.0 timelimit -1
 67@ = Marker.CreateAboveActor(39@)
 07E0: set_marker 67@ type_to 1
 018B: set_marker 67@ radar_mode 2
@@ -1773,7 +1773,7 @@ else_jump @FIRETRU_10108
 Car.ImmuneToNonPlayer(37@) = False
 
 :FIRETRU_10108
-Actor.RemoveReferences(40@)
+Actor.RemoveReferences($player_actor)
 Actor.RemoveReferences(41@)
 Actor.RemoveReferences(42@)
 Actor.RemoveReferences(43@)
@@ -1782,21 +1782,21 @@ Actor.RemoveReferences(45@)
 Actor.RemoveReferences(46@)
 Actor.RemoveReferences(47@)
 Actor.RemoveReferences(48@)
-Model.Destroy(126@)
-0627: update_integer_stat 159 to $8213
-$8213 += 1
+Model.Destroy($car_model)
+0627: update_integer_stat 159 to $firefighter_level
+$firefighter_level += 1
 if
-  $8213 == 13
+  $firefighter_level == 13
 else_jump @FIRETRU_10383
-014F: stop_timer $8215
+014F: stop_timer $firefighter_time
 0151: remove_status_text $8214
-0151: remove_status_text $8213
+0151: remove_status_text $firefighter_level
 03D5: remove_text 'F_START'
 03D5: remove_text 'F_STAR1'
 03D5: remove_text 'FIRELVL'
 00BA: show_text_styled GXT 'F_PASS1' time 5000 style 6
-008B: 79@ = $8213 // (int)
-006E: 79@ *= $8213 // (int)
+008B: 79@ = $firefighter_level // (int)
+006E: 79@ *= $firefighter_level // (int)
 79@ *= 50
 005A: 83@ += 79@ // (int)
 79@ += 5000
@@ -1819,8 +1819,8 @@ jump @FIRETRU_10457
 
 :FIRETRU_10383
 00BA: show_text_styled GXT 'F_PASS1' time 5000 style 6
-008B: 79@ = $8213 // (int)
-006E: 79@ *= $8213 // (int)
+008B: 79@ = $firefighter_level // (int)
+006E: 79@ *= $firefighter_level // (int)
 79@ *= 50
 005A: 83@ += 79@ // (int)
 01E3: show_text_1number_styled GXT 'REWARD' number 79@ time 6000 style 7
@@ -1830,14 +1830,14 @@ Player.Money($PLAYER_CHAR) += 79@
 jump @FIRETRU_789
 
 :FIRETRU_10464
-014F: stop_timer $8215
+014F: stop_timer $firefighter_time
 0151: remove_status_text $8214
-0151: remove_status_text $8213
+0151: remove_status_text $firefighter_level
 03D5: remove_text 'F_START'
 03D5: remove_text 'F_STAR1'
 03D5: remove_text 'FIRELVL'
 if
-   not $8213 == 13
+   not $firefighter_level == 13
 else_jump @FIRETRU_10572
 00BA: show_text_styled GXT 'F_FAIL1' time 5000 style 5
 01E3: show_text_1number_styled GXT 'TSCORE' number 83@ time 6000 style 6
@@ -1860,14 +1860,14 @@ Marker.Disable(74@)
 Marker.Disable(75@)
 Marker.Disable(76@)
 if
-   not $8213 == 13
+   not $firefighter_level == 13
 else_jump @FIRETRU_11249
 if
-   not Actor.Dead(40@)
+   not Actor.Dead($player_actor)
 else_jump @FIRETRU_10712
-02A9: set_actor 40@ immune_to_nonplayer 0
-Actor.Health(40@) = 10
-Actor.SetImmunities(40@, 0, 0, 0, 0, 0)
+02A9: set_actor $player_actor immune_to_nonplayer 0
+Actor.Health($player_actor) = 10
+Actor.SetImmunities($player_actor, 0, 0, 0, 0, 0)
 
 :FIRETRU_10712
 if
@@ -1967,7 +1967,7 @@ else_jump @FIRETRU_11249
 020B: explode_car 37@
 
 :FIRETRU_11249
-Actor.RemoveReferences(40@)
+Actor.RemoveReferences($player_actor)
 Actor.RemoveReferences(41@)
 Actor.RemoveReferences(42@)
 Actor.RemoveReferences(43@)
@@ -1979,7 +1979,7 @@ Actor.RemoveReferences(48@)
 Car.RemoveReferences(35@)
 Car.RemoveReferences(36@)
 Car.RemoveReferences(37@)
-Model.Destroy(126@)
+Model.Destroy($car_model)
 01BD: $CURRENT_TIME_IN_MS = current_time_in_ms
 $ONMISSION = 0
 $ONMISSION_FIREFIGHTER = 0
