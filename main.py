@@ -94,32 +94,45 @@ class NaviNode:
 
         ss = StructStream(data)
 
+        self.x = ss.read_next('<h', 2) / 8
+        self.y = ss.read_next('<h', 2) / 8
 
+        self.area_id = ss.read_next('<H', 2)
+        self.node_id = ss.read_next('<H', 2)
+
+        self.dir_x = ss.read_next('<B', 1)
+        self.dir_y = ss.read_next('<B', 1)
+
+        flags_stream = BitStream(ss.read_next('<L', 4))
+
+        self.path_node_width = flags_stream.read_next_int(8)
+        self.num_left_lanes = flags_stream.read_next_int(3)
+        self.num_right_lanes = flags_stream.read_next_int(3)
+        self.same_direction_as_traffic_lights = flags_stream.read_next_bool()
+        zero = flags_stream.read_next_int(1)
+        assert zero == 0
+
+        self.traffic_light_behaviour = flags_stream.read_next_int(2)
+
+        self.train_crossing = flags_stream.read_next_bool()
 
 class World:
     def __init__(self):
-        self.vehicle_nodes = [None] * 64
+        self.vehicle_nodes = [[] for i in range(64)]
         for filename in glob.glob(NODES_GLOB):
             with open(filename, 'rb') as file:
                 data = file.read()
-                nodes = self.extract_vehicle_nodes(data)
-                assert len(nodes) > 0
-                area_id = nodes[0].area_id
-                assert area_id < 64
-                self.vehicle_nodes[area_id] = nodes
+                ss = StructStream(data)
 
-    def extract_vehicle_nodes(self, nodes_data):
-        ss = StructStream(nodes_data)
+                num_nodes = ss.read_next('<L', 4)
+                num_vehicle_nodes = ss.read_next('<L', 4)
+                num_ped_nodes = ss.read_next('<L', 4)
+                num_navi_nodes = ss.read_next('<L', 4)
+                num_links = ss.read_next('<L', 4)
 
-        num_nodes = ss.read_next('<L', 4)
-        num_vehicle_nodes = ss.read_next('<L', 4)
-        num_ped_nodes = ss.read_next('<L', 4)
-        num_navi_nodes = ss.read_next('<L', 4)
-        num_links = ss.read_next('<L', 4)
-
-        vehicle_nodes = []
-        for i in range(num_vehicle_nodes):
-            vehicle_nodes.append(VehicleNode(ss.read_next_bytes(VehicleNode.SIZEOF)))
-        return vehicle_nodes
+                for i in range(num_vehicle_nodes):
+                    node = VehicleNode(ss.read_next_bytes(VehicleNode.SIZEOF))
+                    assert node.node_id == len(self.vehicle_nodes[node.area_id])
+                    self.vehicle_nodes[node.area_id].append(node)
 
 WORLD = World()
