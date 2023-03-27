@@ -10,6 +10,8 @@ from zone import *
 
 NODES_GLOB = './nodes/nodes*.dat'
 
+RADAR_IMAGE_BW = plt.imread('./assets/radar_bw.png')
+
 class StructStream:
     def __init__(self, data):
         self.data = data
@@ -238,6 +240,9 @@ def dist_3d_manhattan(x0, y0, z0, x1, y1, z1):
 def dist_3d_max(x0, y0, z0, x1, y1, z1):
     return max([abs(x0-x1), abs(y0-y1), abs(z0-z1)])
 
+def dist_2d_max(x0, y0, x1, y1):
+    return max([abs(x0-x1), abs(y0-y1)])
+
 class FirefighterMission:
     def __init__(self, num_unlocked_cities=0):
         self.num_unlocked_cities = num_unlocked_cities
@@ -335,7 +340,28 @@ def generate_buckets(min_x, min_y, max_x, max_y, num_buckets):
     x_buckets = max(1, round(width / bucket_size))
     y_buckets = max(1, round(height / bucket_size))
     x, y = np.meshgrid(np.linspace(min_x, max_x, x_buckets), np.linspace(min_y, max_y, y_buckets))
-    return x, y, bucket_size
+    return x, y, x_buckets * y_buckets, bucket_size
+
+def process_in_buckets(min_x, min_y, max_x, max_y, ideal_num_buckets, func, only_near_nodes):
+    X, Y, num_buckets, bucket_size = generate_buckets(min_x, min_y, max_x, max_y, ideal_num_buckets)
+    bucket_i = 0
+
+    @np.vectorize
+    def impl(bx, by):
+        nonlocal func
+        nonlocal bucket_i
+        nonlocal bucket_size
+        bucket_i += 1
+        print(f'Processing bucket: {bucket_i} / {num_buckets}')
+
+        if only_near_nodes:
+            nearest_node = WORLD.find_node_for_firefighter_spawn(bx, by, 20.0, 3000.0)
+            if nearest_node is None or dist_2d_max(nearest_node.x, nearest_node.y, bx, by) > bucket_size + nearest_node.path_width:
+                return float('nan')
+
+        return func(bx, by)
+
+    return X, Y, impl(X, Y)
 
 def plot_average_distance_to_farthest_spawn(ff, level, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket):
     bucket_i = 0
@@ -401,14 +427,19 @@ def plot_average_distance_between_spawns(ff, level, min_x, min_y, max_x, max_y, 
 
     plt.show()
 
-def plot_probability_of_multizone_split(ff, level, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket):
-    bucket_i = 0
-    @np.vectorize
-    def gen_bucket(bucket_x, bucket_y):
-        nonlocal bucket_i
-        bucket_i += 1
-        print(f'Processing bucket: {bucket_i} / {num_buckets}')
+def show_heatmap(*args, **kwargs):
+    plt.rcParams["figure.figsize"] = [9, 9]
+    fig, ax = plt.subplots()
+    im = ax.imshow(RADAR_IMAGE_BW, extent=[-3000, 3000, -3000, 3000])
+    draw_zones(ax)
 
+    c = ax.pcolormesh(*args, **kwargs)
+    fig.colorbar(c, ax=ax)
+
+    plt.show()
+
+def plot_probability_of_multizone_split(ff, level, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket, only_near_nodes=False):
+    def process_func(bucket_x, bucket_y):
         splits = []
         for i in range(num_generations_per_bucket):
             spawns = ff.generate_level(level, bucket_x, bucket_y, 20.0)
@@ -419,20 +450,9 @@ def plot_probability_of_multizone_split(ff, level, min_x, min_y, max_x, max_y, n
             splits.append(split)
         return sum(splits) / len(splits)
 
-    bx, by, bucket_size = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
-    bz = gen_bucket(bx, by)
+    X, Y, Z = process_in_buckets(min_x, min_y, max_x, max_y, num_buckets, process_func, only_near_nodes)
 
-    RADAR_IMAGE = im = plt.imread('./assets/radar_bw.png')
-
-    plt.rcParams["figure.figsize"] = [9, 9]
-    fig, ax = plt.subplots()
-    im = ax.imshow(im, extent=[-3000, 3000, -3000, 3000])
-    draw_zones(ax)
-
-    c = ax.pcolormesh(bx, by, bz, cmap='Reds', alpha=0.75)
-    fig.colorbar(c, ax=ax)
-
-    plt.show()
+    show_heatmap(X, Y, Z, cmap='Reds', alpha=0.75)
 
 def plot_average_total_firefighter_distance(ff, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket, only_near_nodes=False):
     bucket_i = 0
@@ -588,7 +608,7 @@ plt.show()
 
 ff = FirefighterMission(0)
 #plot_average_distance_to_farthest_spawn(ff, 1, 2700.0, -1200.0, 3000.0, -600.0, 128, 1)
-plot_probability_of_multizone_split(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 8)
+plot_probability_of_multizone_split(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 8, True)
 #plot_probability_of_multizone_split(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 1024, 4)
 #plot_average_distance_between_spawns(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 2048, 64)
 #plot_average_total_firefighter_distance(ff, 2500.0, -1900.0, 2950.0, 200.0, 1024, 16, True)
