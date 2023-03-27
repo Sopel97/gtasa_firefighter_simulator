@@ -116,10 +116,21 @@ class NaviNode:
 
         self.train_crossing = flags_stream.read_next_bool()
 
+class NodeLink:
+    SIZEOF = 4
+    def __init__(self, data):
+        assert len(data) == NodeLink.SIZEOF
+
+        ss = StructStream(data)
+
+        self.area_id = ss.read_next('<H', 2)
+        self.node_id = ss.read_next('<H', 2)
+
 class World:
     def __init__(self):
         self.vehicle_nodes = [[] for i in range(64)]
         self.navi_nodes = []
+        self.node_links = []
 
         for filename in glob.glob(NODES_GLOB):
             with open(filename, 'rb') as file:
@@ -142,5 +153,9 @@ class World:
                 for i in range(num_navi_nodes):
                     node = NaviNode(ss.read_next_bytes(NaviNode.SIZEOF))
                     self.navi_nodes.append(node)
+
+                for i in range(num_links):
+                    link = NodeLink(ss.read_next_bytes(NodeLink.SIZEOF))
+                    self.node_links.append(link)
 
 WORLD = World()
