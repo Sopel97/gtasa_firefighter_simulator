@@ -324,6 +324,45 @@ class FirefighterMission:
 
         return spawns
 
+def generate_buckets(min_x, min_y, max_x, max_y, num_buckets):
+    width = max_x - min_x
+    height = max_y - min_y
+    area = width * height
+    area_per_bucket = area / num_buckets
+    bucket_size = area_per_bucket**0.5
+    x_buckets = max(1, round(width / bucket_size))
+    y_buckets = max(1, round(height / bucket_size))
+    x, y = np.meshgrid(np.linspace(min_x, max_x, x_buckets), np.linspace(min_y, max_y, y_buckets))
+    return x, y
+
+def plot_average_distance_to_farthest_spawn(ff, level, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket):
+    bucket_i = 0
+    @np.vectorize
+    def gen_bucket(bucket_x, bucket_y):
+        nonlocal bucket_i
+        bucket_i += 1
+        print(f'Processing bucket: {bucket_i} / {num_buckets}')
+
+        ds = []
+        for i in range(num_generations_per_bucket):
+            spawns = ff.generate_level(level, bucket_x, bucket_y, 20.0)
+            d = max(dist_3d(s.x, s.y, s.z, bucket_x, bucket_y, 20.0) for s in spawns)
+            ds.append(d)
+        return sum(ds) / len(ds)
+
+    bx, by = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
+    bz = gen_bucket(bx, by)
+
+    RADAR_IMAGE = im = plt.imread('./assets/radar_bw.png')
+
+    plt.rcParams["figure.figsize"] = [9, 9]
+    fig, ax = plt.subplots()
+    im = ax.imshow(im, extent=[-3000, 3000, -3000, 3000])
+    c = ax.pcolormesh(bx, by, bz, cmap='RdBu', alpha=0.75)
+    fig.colorbar(c, ax=ax)
+
+    plt.show()
+
 '''
 ff = FirefighterMission(0)
 d = []
@@ -339,6 +378,7 @@ print('Max: ', max(d))
 print('Avg: ', sum(d) / len(d))
 '''
 
+'''
 RADAR_IMAGE = im = plt.imread('./assets/radar.png')
 
 plt.rcParams["figure.figsize"] = [9, 9]
@@ -366,3 +406,8 @@ bnext = Button(ax_button, 'GENERATE')
 bnext.on_clicked(generate_next)
 
 plt.show()
+'''
+
+ff = FirefighterMission(0)
+#plot_average_distance_to_farthest_spawn(ff, 1, 2700.0, -1200.0, 3000.0, -600.0, 128, 1)
+plot_average_distance_to_farthest_spawn(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 8)
