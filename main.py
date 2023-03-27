@@ -131,6 +131,7 @@ class World:
         self.vehicle_nodes = [[] for i in range(64)]
         self.navi_nodes = []
         self.node_links = []
+        self.link_lengths = []
 
         for filename in glob.glob(NODES_GLOB):
             with open(filename, 'rb') as file:
@@ -157,5 +158,14 @@ class World:
                 for i in range(num_links):
                     link = NodeLink(ss.read_next_bytes(NodeLink.SIZEOF))
                     self.node_links.append(link)
+
+                ss.skip(768) # unknown section
+
+                ss.skip(num_navi_nodes * 2) # navi links, skip for now
+
+                for i in range(num_navi_nodes):
+                    self.link_lengths.append(ss.read_next_bytes(1))
+
+
 
 WORLD = World()
