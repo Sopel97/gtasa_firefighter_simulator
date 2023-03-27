@@ -385,3 +385,10 @@ def get_zone(x, y, z):
         if x >= zone.min_x and y >= zone.max_x and z >= zone.max_z and x <= zone.max_x and y <= zone.max_y and z <= zone.max_z:
             return zone
     return None
+
+def same_zone(x0, y0, z0, x1, y1, z1):
+    zone0 = get_zone(x0, y0, z0)
+    zone1 = get_zone(x1, y1, z1)
+    if zone0 is None or zone1 is None:
+        return False
+    return zone0.name == zone1.name

@@ -1,5 +1,6 @@
 import struct
 import glob
+import random
 
 from zone import *
 
@@ -168,12 +169,15 @@ class World:
                 for i in range(num_navi_nodes):
                     self.link_lengths.append(ss.read_next_bytes(1))
 
-    def find_vehicle_node_closest_to_coords(self, x, y, z, max_dist):
+    def find_vehicle_node_closest_to_coords(self, x, y, z, max_dist, boats=False):
         closest_node = None
         closest_dist = max_dist
 
         for nodes in self.vehicle_nodes:
             for node in nodes:
+                if node.boats != boats:
+                    continue
+
                 dist = abs(node.x - x) + abs(node.y - y) + 3 * abs(node.z - z)
                 if dist < closest_dist:
                     closest_node = node
@@ -186,4 +190,112 @@ class World:
         #       paths are encoded differently than in VC.
         pass
 
+class FirefighterMissionSpawnPoint:
+    def __init__(self, x, y, z, num_attempts, num_passengers):
+        self.x = x
+        self.y = y
+        self.z = z
+        self.num_attempts = num_attempts
+        self.num_passengers = num_passengers
+
 WORLD = World()
+
+def dist_3d(x0, y0, z0, x1, y1, z1):
+    return ((x0-x1)**2 + (y0-y1)**2 + (z0-z1)**2)**0.5
+
+class FirefighterMission:
+    def __init__(self, num_unlocked_cities=0):
+        self.num_unlocked_cities = num_unlocked_cities
+        pass
+
+    def _try_generate_spawn_spot(self, spawns, level, num_attempts, x, y, z):
+        rand_radius = max(170, level * 60 + num_attempts)
+        min_x = x - rand_radius
+        max_x = x + rand_radius
+        min_y = y - rand_radius
+        max_y = y + rand_radius
+        xx = random.uniform(min_x, max_x)
+        yy = random.uniform(min_y, max_y)
+        nearest_node = WORLD.find_vehicle_node_closest_to_coords(xx, yy, z, 500)
+
+        # No node nearby
+        if nearest_node is None:
+            return None
+
+        # Player too close
+        if dist_3d(nearest_node.x, nearest_node.y, nearest_node.z, x, y, z) < 140:
+            return None
+
+        if num_attempts < 35:
+            # Before attempt 35 require the same zone as player or first spawn if already happened
+            if len(spawns) > 0:
+                if not same_zone(nearest_node.x, nearest_node.y, nearest_node.z, spawns[0].x, spawns[0].y, spawns[0].z):
+                    return None
+            else:
+                if not same_zone(nearest_node.x, nearest_node.y, nearest_node.z, x, y, z):
+                    return None
+
+        # Generate only in unlocked cities
+        if self.num_unlocked_cities == 0:
+            if nearest_node.x < 78.4427 and nearest_node.y < -699.519:
+                return None
+            if nearest_node.x < -252.6557 and nearest_node.y < -285.766:
+                return None
+            if nearest_node.x < -948.3447:
+                return None
+            if nearest_node.x > 1473.448 and nearest_node.y > 403.7353:
+                return None
+            if nearest_node.y > 578.6325:
+                return None
+            if nearest_node.x < 837.5551 and nearest_node.y > 347.4097:
+                return None
+        elif self.num_unlocked_cities == 1:
+            if nearest_node.x < 1473.448 and nearest_node.y < 403.7353:
+                return None
+            if nearest_node.x < -1528.498 and nearest_node.y < 578.6325:
+                return None
+            if nearest_node.x < 837.5551 and nearest_node.x > -1528.498 and nearest_node.y > 347.4097:
+                return None
+            if nearest_node.y > 1380.0:
+                return None
+            if nearest_node.x < 2150.0 and nearest_node.x > 1970.0 and nearest_node.y < -2274.0 and nearest_node.y > -2670.0:
+                return None
+            if nearest_node.x < 2150.0 and nearest_node.x > 1590.0 and nearest_node.y < -2397.0 and nearest_node.y > -2670.0:
+                return None
+            if nearest_node.x < -1070.0 and nearest_node.x > -1737.0 and nearest_node.y < -185.0 and nearest_node.y > -590.0:
+                return None
+            if nearest_node.x < -1081.0 and nearest_node.x > -1600.0 and nearest_node.y < 415.0 and nearest_node.y > -185.0:
+                return None
+            if nearest_node.x < 1733.0 and nearest_node.x > 1500.0 and nearest_node.y < 1702.0 and nearest_node.y > 1529.0:
+                return None
+
+        # Distance to previous spawns
+        for spawn in spawns:
+            if dist_3d(nearest_node.x, nearest_node.y, nearest_node.z, spawn.x, spawn.y, spawn.z) < 20:
+                return None
+
+        return nearest_node
+
+    def generate_level(self, level, x, y, z):
+        assert level >= 1 and level <= 12
+        spawns = []
+
+        num_cars = (level + 3) // 4
+        num_passengers = (level + 3) % 4
+
+        for i in range(num_cars):
+            num_attempts = 0
+            while True:
+                num_attempts += 1
+                spawn_spot = self._try_generate_spawn_spot(spawns, level, num_attempts, x, y, z)
+
+                if spawn_spot is not None:
+                    spawns.append(FirefighterMissionSpawnPoint(spawn_spot.x, spawn_spot.y, spawn_spot.z, num_attempts, num_passengers))
+                    break
+
+        return spawns
+
+ff = FirefighterMission(0)
+spawns = ff.generate_level(12, 2865.0, -798.0, 20.0)
+for spawn in spawns:
+    print(spawn.x, spawn.y, spawn.z, spawn.num_attempts, get_zone(spawn.x, spawn.y, spawn.z).name)
