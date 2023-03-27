@@ -119,6 +119,8 @@ class NaviNode:
 class World:
     def __init__(self):
         self.vehicle_nodes = [[] for i in range(64)]
+        self.navi_nodes = []
+
         for filename in glob.glob(NODES_GLOB):
             with open(filename, 'rb') as file:
                 data = file.read()
@@ -134,5 +136,11 @@ class World:
                     node = VehicleNode(ss.read_next_bytes(VehicleNode.SIZEOF))
                     assert node.node_id == len(self.vehicle_nodes[node.area_id])
                     self.vehicle_nodes[node.area_id].append(node)
+
+                ss.skip(28 * num_ped_nodes) # not needed
+
+                for i in range(num_navi_nodes):
+                    node = NaviNode(ss.read_next_bytes(NaviNode.SIZEOF))
+                    self.navi_nodes.append(node)
 
 WORLD = World()
