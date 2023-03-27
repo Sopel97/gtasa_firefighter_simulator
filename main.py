@@ -68,14 +68,15 @@ class VehicleNode:
         flags_stream = BitStream(ss.read_next('<L', 4))
 
         self.link_count = flags_stream.read_next_int(4)
-        self.traffic_level = flags_stream.read_next_int(2)
+        self.dead_end = flags_stream.read_next_bool()
+        self.is_disabled = flags_stream.read_next_bool()
         self.roadblocks = flags_stream.read_next_bool()
         self.boats = flags_stream.read_next_bool()
         self.emergency_vehicles_only = flags_stream.read_next_bool()
         zero = flags_stream.read_next_int(1)
         assert(zero == 0)
 
-        unknown = flags_stream.read_next_bool()
+        self.dont_wander = flags_stream.read_next_bool()
 
         zero = flags_stream.read_next_int(1)
         assert(zero == 0)
@@ -169,13 +170,19 @@ class World:
                 for i in range(num_navi_nodes):
                     self.link_lengths.append(ss.read_next_bytes(1))
 
-    def find_vehicle_node_closest_to_coords(self, x, y, z, max_dist, boats=False):
+    def find_vehicle_node_closest_to_coords(self, x, y, z, max_dist, boats=False, allow_dead_ends=False, allow_disabled=False):
         closest_node = None
         closest_dist = max_dist
 
         for nodes in self.vehicle_nodes:
             for node in nodes:
                 if node.boats != boats:
+                    continue
+
+                if not allow_dead_ends and node.dead_end:
+                    continue
+
+                if not allow_disabled and node.is_disabled:
                     continue
 
                 dist = abs(node.x - x) + abs(node.y - y) + 3 * abs(node.z - z)
