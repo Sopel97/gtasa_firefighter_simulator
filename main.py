@@ -1,6 +1,8 @@
 import struct
 import glob
 
+from zone import *
+
 NODES_GLOB = './nodes/nodes*.dat'
 
 class StructStream:
