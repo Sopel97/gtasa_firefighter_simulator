@@ -352,7 +352,7 @@ def plot_average_distance_to_farthest_spawn(ff, level, min_x, min_y, max_x, max_
             ds.append(d)
         return sum(ds) / len(ds)
 
-    bx, by = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
+    bx, by, bucket_size = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
     bz = gen_bucket(bx, by)
 
     RADAR_IMAGE = im = plt.imread('./assets/radar_bw.png')
@@ -386,7 +386,7 @@ def plot_average_distance_between_spawns(ff, level, min_x, min_y, max_x, max_y, 
                     ds.append(d)
         return sum(ds) / len(ds)
 
-    bx, by = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
+    bx, by, bucket_size = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
     bz = gen_bucket(bx, by)
 
     RADAR_IMAGE = im = plt.imread('./assets/radar_bw.png')
@@ -419,7 +419,7 @@ def plot_probability_of_multizone_split(ff, level, min_x, min_y, max_x, max_y, n
             splits.append(split)
         return sum(splits) / len(splits)
 
-    bx, by = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
+    bx, by, bucket_size = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
     bz = gen_bucket(bx, by)
 
     RADAR_IMAGE = im = plt.imread('./assets/radar_bw.png')
@@ -588,8 +588,8 @@ plt.show()
 
 ff = FirefighterMission(0)
 #plot_average_distance_to_farthest_spawn(ff, 1, 2700.0, -1200.0, 3000.0, -600.0, 128, 1)
-#plot_probability_of_multizone_split(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 8)
+plot_probability_of_multizone_split(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 8)
 #plot_probability_of_multizone_split(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 1024, 4)
 #plot_average_distance_between_spawns(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 2048, 64)
-#plot_average_total_firefighter_distance(ff, 2500.0, -1900.0, 2950.0, 200.0, 1024, 8, True)
-plot_probability_that_firefighter_stays_on_coast(ff, 2500.0, -1900.0, 2950.0, 200.0, 512, 100, True)
+#plot_average_total_firefighter_distance(ff, 2500.0, -1900.0, 2950.0, 200.0, 1024, 16, True)
+#plot_probability_that_firefighter_stays_on_coast(ff, 2500.0, -1900.0, 2950.0, 200.0, 512, 100, True)
