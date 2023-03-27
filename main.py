@@ -232,6 +232,9 @@ WORLD = World()
 def dist_3d(x0, y0, z0, x1, y1, z1):
     return ((x0-x1)**2 + (y0-y1)**2 + (z0-z1)**2)**0.5
 
+def dist_3d_manhattan(x0, y0, z0, x1, y1, z1):
+    return abs(x0-x1) + abs(y0-y1) + abs(z0-z1)
+
 class FirefighterMission:
     def __init__(self, num_unlocked_cities=0):
         self.num_unlocked_cities = num_unlocked_cities
@@ -360,7 +363,7 @@ def plot_average_distance_to_farthest_spawn(ff, level, min_x, min_y, max_x, max_
     im = ax.imshow(im, extent=[-3000, 3000, -3000, 3000])
     draw_zones(ax)
 
-    c = ax.pcolormesh(bx, by, bz, cmap='RdBu', alpha=0.75)
+    c = ax.pcolormesh(bx, by, bz, cmap='Reds', alpha=0.75)
     fig.colorbar(c, ax=ax)
 
     plt.show()
@@ -394,7 +397,7 @@ def plot_average_distance_between_spawns(ff, level, min_x, min_y, max_x, max_y, 
     im = ax.imshow(im, extent=[-3000, 3000, -3000, 3000])
     draw_zones(ax)
 
-    c = ax.pcolormesh(bx, by, bz, cmap='RdBu', alpha=0.75)
+    c = ax.pcolormesh(bx, by, bz, cmap='Reds', alpha=0.75)
     fig.colorbar(c, ax=ax)
 
     plt.show()
@@ -453,7 +456,7 @@ def plot_average_total_firefighter_distance(ff, min_x, min_y, max_x, max_y, num_
                 # TODO: TSP and actual road distance? needs pathfinding
                 ordered_spawns = sorted(spawns, key=lambda s: -dist_3d(s.x, s.y, s.z, bucket_x, bucket_y, 20.0))
                 for s in ordered_spawns:
-                    d += dist_3d(x, y, z, s.x, s.y, s.z)
+                    d += dist_3d_manhattan(x, y, z, s.x, s.y, s.z)
                     x = s.x
                     y = s.y
                     z = s.z
