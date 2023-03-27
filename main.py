@@ -168,6 +168,22 @@ class World:
                 for i in range(num_navi_nodes):
                     self.link_lengths.append(ss.read_next_bytes(1))
 
+    def find_vehicle_node_closest_to_coords(self, x, y, z, max_dist):
+        closest_node = None
+        closest_dist = max_dist
 
+        for nodes in self.vehicle_nodes:
+            for node in nodes:
+                dist = abs(node.x - x) + abs(node.y - y) + 3 * abs(node.z - z)
+                if dist < closest_dist:
+                    closest_node = node
+                    closest_dist = dist
+
+        return closest_node
+
+    def find_vehicle_node_pair_closest_to_coords(self, x, y, z, min_dist, max_dist, ignore_disabled, ignore_between_levels, water_path):
+        # TODO: Match behaviour in SA. It's unclear how this function works exactly because
+        #       paths are encoded differently than in VC.
+        pass
 
 WORLD = World()
