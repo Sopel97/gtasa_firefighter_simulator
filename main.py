@@ -545,21 +545,8 @@ def plot_average_total_firefighter_distance(ff, min_x, min_y, max_x, max_y, num_
     plt.show()
 
 def plot_probability_that_firefighter_stays_on_coast(ff, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket, only_near_nodes=False):
-    bucket_i = 0
-    bx, by, bucket_size = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
-
     @np.vectorize
-    def gen_bucket(bucket_x, bucket_y):
-        nonlocal bucket_i
-        nonlocal bucket_size
-        bucket_i += 1
-        print(f'Processing bucket: {bucket_i} / {num_buckets}')
-
-        if only_near_nodes:
-            nearest_node = WORLD.find_node_for_firefighter_spawn(bucket_x, bucket_y, 20.0, 3000.0)
-            if dist_3d_max(nearest_node.x, nearest_node.y, nearest_node.z, bucket_x, bucket_y, 20.0) > bucket_size + nearest_node.path_width:
-                return None
-
+    def process_func(bucket_x, bucket_y):
         ds = []
         for i in range(num_generations_per_bucket):
             d = 0.0
@@ -587,19 +574,9 @@ def plot_probability_that_firefighter_stays_on_coast(ff, min_x, min_y, max_x, ma
             ds.append(ok)
         return sum(ds) / len(ds)
 
-    bz = gen_bucket(bx, by)
+    X, Y, Z = process_in_buckets(min_x, min_y, max_x, max_y, num_buckets, process_func, only_near_nodes)
 
-    RADAR_IMAGE = im = plt.imread('./assets/radar_bw.png')
-
-    plt.rcParams["figure.figsize"] = [9, 9]
-    fig, ax = plt.subplots()
-    im = ax.imshow(im, extent=RADAR_IMAGE_EXTENTS)
-    draw_zones(ax)
-
-    c = ax.pcolormesh(bx, by, bz, cmap='Reds', alpha=0.75)
-    fig.colorbar(c, ax=ax)
-
-    plt.show()
+    show_heatmap(X, Y, Z, cmap='Reds', alpha=0.75)
 
 def plot_valid_ff_spawns():
     X = []
@@ -664,10 +641,10 @@ plt.show()
 
 ff = FirefighterMission(0)
 #plot_average_distance_to_farthest_spawn(ff, 1, 2700.0, -1200.0, 3000.0, -600.0, 128, 1)
-plot_probability_of_multizone_split(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 8, True)
+#plot_probability_of_multizone_split(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 8, True)
 #plot_probability_of_multizone_split(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 1024, 4)
 #plot_average_distance_between_spawns(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 2048, 64)
 #plot_average_total_firefighter_distance(ff, 2500.0, -1900.0, 2950.0, 200.0, 1024, 16, True)
-#plot_probability_that_firefighter_stays_on_coast(ff, 2500.0, -1900.0, 2950.0, 200.0, 512, 100, True)
+plot_probability_that_firefighter_stays_on_coast(ff, 2750.0, -1200.0, 2950.0, -500.0, 512, 200, True)
 #plot_valid_ff_spawns()
 #plot_distance_to_closest_road()
