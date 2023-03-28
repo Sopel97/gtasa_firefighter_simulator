@@ -410,104 +410,6 @@ class HeatMap:
         c = ax.pcolormesh(self.X, self.Y, self.Z, *args, **kwargs)
         fig.colorbar(c, ax=ax)
 
-def generate_buckets(min_x, min_y, max_x, max_y, num_buckets):
-    width = max_x - min_x
-    height = max_y - min_y
-    area = width * height
-    area_per_bucket = area / num_buckets
-    bucket_size = area_per_bucket**0.5
-    x_buckets = max(1, round(width / bucket_size))
-    y_buckets = max(1, round(height / bucket_size))
-    x, y = np.meshgrid(np.linspace(min_x, max_x, x_buckets), np.linspace(min_y, max_y, y_buckets))
-    return x, y, x_buckets * y_buckets, bucket_size
-
-def process_in_buckets(min_x, min_y, max_x, max_y, ideal_num_buckets, func, only_near_nodes):
-    X, Y, num_buckets, bucket_size = generate_buckets(min_x, min_y, max_x, max_y, ideal_num_buckets)
-    bucket_i = 0
-
-    @np.vectorize
-    def impl(bx, by):
-        nonlocal func
-        nonlocal bucket_i
-        nonlocal bucket_size
-        bucket_i += 1
-        print(f'Processing bucket: {bucket_i} / {num_buckets}')
-
-        bz = 0.0
-        if only_near_nodes:
-            nearest_node = WORLD.find_node_for_firefighter_spawn_2d(bx, by, 3000.0)
-            if nearest_node is None or dist_2d_max(nearest_node.x, nearest_node.y, bx, by) > bucket_size * 2.0 + nearest_node.path_width:
-                return float('nan')
-            bz = nearest_node.z
-
-        return func(bx, by, bz)
-
-    return X, Y, impl(X, Y)
-
-def plot_average_distance_to_farthest_spawn(ff, level, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket):
-    bucket_i = 0
-    @np.vectorize
-    def gen_bucket(bucket_x, bucket_y):
-        nonlocal bucket_i
-        bucket_i += 1
-        print(f'Processing bucket: {bucket_i} / {num_buckets}')
-
-        ds = []
-        for i in range(num_generations_per_bucket):
-            spawns = ff.generate_level(level, bucket_x, bucket_y, 20.0)
-            d = max(dist_3d(s.x, s.y, s.z, bucket_x, bucket_y, 20.0) for s in spawns)
-            ds.append(d)
-        return sum(ds) / len(ds)
-
-    bx, by, bucket_size = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
-    bz = gen_bucket(bx, by)
-
-    RADAR_IMAGE = im = plt.imread('./assets/radar_bw.png')
-
-    plt.rcParams["figure.figsize"] = [9, 9]
-    fig, ax = plt.subplots()
-    im = ax.imshow(im, extent=RADAR_IMAGE_EXTENTS)
-    draw_zones(ax)
-
-    c = ax.pcolormesh(bx, by, bz, cmap='Reds', alpha=0.75)
-    fig.colorbar(c, ax=ax)
-
-    plt.show()
-
-def plot_average_distance_between_spawns(ff, level, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket):
-    bucket_i = 0
-    @np.vectorize
-    def gen_bucket(bucket_x, bucket_y):
-        nonlocal bucket_i
-        bucket_i += 1
-        print(f'Processing bucket: {bucket_i} / {num_buckets}')
-
-        ds = []
-        for i in range(num_generations_per_bucket):
-            spawns = ff.generate_level(level, bucket_x, bucket_y, 20.0)
-            for i in range(len(spawns)):
-                for j in range(i + 1, len(spawns)):
-                    s0 = spawns[i]
-                    s1 = spawns[j]
-                    d = dist_3d(s0.x, s0.y, s0.z, s1.x, s1.y, s1.z)
-                    ds.append(d)
-        return sum(ds) / len(ds)
-
-    bx, by, bucket_size = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
-    bz = gen_bucket(bx, by)
-
-    RADAR_IMAGE = im = plt.imread('./assets/radar_bw.png')
-
-    plt.rcParams["figure.figsize"] = [9, 9]
-    fig, ax = plt.subplots()
-    im = ax.imshow(im, extent=RADAR_IMAGE_EXTENTS)
-    draw_zones(ax)
-
-    c = ax.pcolormesh(bx, by, bz, cmap='Reds', alpha=0.75)
-    fig.colorbar(c, ax=ax)
-
-    plt.show()
-
 def show_heatmap(H, *args, **kwargs):
     plt.rcParams["figure.figsize"] = [9, 9]
     fig, ax = plt.subplots()
@@ -523,14 +425,40 @@ def make_and_show_heatmap(func, min_x, min_y, max_x, max_y, ideal_num_buckets, o
     H.process_in_buckets(func, only_near_nodes)
     show_heatmap(H, *args, **kwargs)
 
+def plot_average_distance_to_farthest_spawn(ff, level, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket, only_near_nodes=False):
+    @np.vectorize
+    def process_func(bucket_x, bucket_y, bucket_z):
+        ds = []
+        for i in range(num_generations_per_bucket):
+            spawns = ff.generate_level(level, bucket_x, bucket_y, bucket_z)
+            d = max(dist_3d(s.x, s.y, s.z, bucket_x, bucket_y, bucket_z) for s in spawns)
+            ds.append(d)
+        return sum(ds) / len(ds)
+
+    make_and_show_heatmap(process_func, min_x, min_y, max_x, max_y, num_buckets, only_near_nodes, cmap='jet', alpha=0.75)
+
+def plot_average_distance_between_spawns(ff, level, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket, only_near_nodes=False):
+    @np.vectorize
+    def process_func(bucket_x, bucket_y, bucket_z):
+        ds = []
+        for i in range(num_generations_per_bucket):
+            spawns = ff.generate_level(level, bucket_x, bucket_y, bucket_z)
+            for i in range(len(spawns)):
+                for j in range(i + 1, len(spawns)):
+                    s0 = spawns[i]
+                    s1 = spawns[j]
+                    d = dist_3d(s0.x, s0.y, s0.z, s1.x, s1.y, s1.z)
+                    ds.append(d)
+        return sum(ds) / len(ds)
+
+    make_and_show_heatmap(process_func, min_x, min_y, max_x, max_y, num_buckets, only_near_nodes, cmap='jet', alpha=0.75)
+
 def plot_distance_to_closest_road():
-    def process_func(bucket_x, bucket_y):
+    def process_func(bucket_x, bucket_y, bucket_z):
         nearest_node = WORLD.find_node_for_firefighter_spawn_2d(bucket_x, bucket_y, 3000.0)
         return dist_2d_max(nearest_node.x, nearest_node.y, bucket_x, bucket_y)
 
-    X, Y, Z = process_in_buckets(2500.0, -1900.0, 2950.0, 200.0, 2048, process_func, False)
-
-    show_heatmap(X, Y, Z, cmap='Reds', alpha=0.75)
+    make_and_show_heatmap(process_func, 2500.0, -1900.0, 2950.0, 200.0, 2048, False, cmap='jet', alpha=0.75)
 
 def plot_probability_of_multizone_split(ff, level, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket, only_near_nodes=False):
     def process_func(bucket_x, bucket_y, bucket_z):
@@ -544,36 +472,23 @@ def plot_probability_of_multizone_split(ff, level, min_x, min_y, max_x, max_y, n
             splits.append(split)
         return sum(splits) / len(splits)
 
-    make_and_show_heatmap(process_func, min_x, min_y, max_x, max_y, num_buckets, only_near_nodes, cmap='Reds', alpha=0.75)
+    make_and_show_heatmap(process_func, min_x, min_y, max_x, max_y, num_buckets, only_near_nodes, cmap='jet', alpha=0.75)
 
 def plot_average_total_firefighter_distance(ff, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket, only_near_nodes=False):
-    bucket_i = 0
-    bx, by, bucket_size = generate_buckets(min_x, min_y, max_x, max_y, num_buckets)
-
     @np.vectorize
-    def gen_bucket(bucket_x, bucket_y):
-        nonlocal bucket_i
-        nonlocal bucket_size
-        bucket_i += 1
-        print(f'Processing bucket: {bucket_i} / {num_buckets}')
-
-        if only_near_nodes:
-            nearest_node = WORLD.find_node_for_firefighter_spawn(bucket_x, bucket_y, 20.0, 3000.0)
-            if dist_3d_max(nearest_node.x, nearest_node.y, nearest_node.z, bucket_x, bucket_y, 20.0) > bucket_size + nearest_node.path_width:
-                return None
-
+    def process_func(bucket_x, bucket_y, bucket_z):
         ds = []
         for i in range(num_generations_per_bucket):
             d = 0.0
             x = bucket_x
             y = bucket_y
-            z = 20.0
+            z = bucket_z
             for level in range(1, 13):
                 spawns = ff.generate_level(level, x, y, z)
                 # we order spawns from farthest to nearest to the start position
                 # this is not the ideal heuristics, but fairly close to what actually happens
                 # TODO: TSP and actual road distance? needs pathfinding
-                ordered_spawns = sorted(spawns, key=lambda s: -dist_3d(s.x, s.y, s.z, bucket_x, bucket_y, 20.0))
+                ordered_spawns = sorted(spawns, key=lambda s: -dist_3d(s.x, s.y, s.z, bucket_x, bucket_y, bucket_z))
                 for s in ordered_spawns:
                     d += dist_3d_manhattan(x, y, z, s.x, s.y, s.z)
                     x = s.x
@@ -582,19 +497,7 @@ def plot_average_total_firefighter_distance(ff, min_x, min_y, max_x, max_y, num_
             ds.append(d)
         return sum(ds) / len(ds)
 
-    bz = gen_bucket(bx, by)
-
-    RADAR_IMAGE = im = plt.imread('./assets/radar_bw.png')
-
-    plt.rcParams["figure.figsize"] = [9, 9]
-    fig, ax = plt.subplots()
-    im = ax.imshow(im, extent=RADAR_IMAGE_EXTENTS)
-    draw_zones(ax)
-
-    c = ax.pcolormesh(bx, by, bz, cmap='Reds', alpha=0.75)
-    fig.colorbar(c, ax=ax)
-
-    plt.show()
+    make_and_show_heatmap(process_func, min_x, min_y, max_x, max_y, num_buckets, only_near_nodes, cmap='jet', alpha=0.75)
 
 def plot_probability_that_firefighter_stays_on_coast(ff, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket, only_near_nodes=False):
     @np.vectorize
@@ -604,7 +507,7 @@ def plot_probability_that_firefighter_stays_on_coast(ff, min_x, min_y, max_x, ma
             d = 0.0
             x = bucket_x
             y = bucket_y
-            z = 20.0
+            z = bucket_z
             ok = 1
             for level in range(1, 13):
                 spawns = ff.generate_level(level, x, y, z)
@@ -626,9 +529,7 @@ def plot_probability_that_firefighter_stays_on_coast(ff, min_x, min_y, max_x, ma
             ds.append(ok)
         return sum(ds) / len(ds)
 
-    X, Y, Z = process_in_buckets(min_x, min_y, max_x, max_y, num_buckets, process_func, only_near_nodes)
-
-    show_heatmap(X, Y, Z, cmap='Reds', alpha=0.75)
+    make_and_show_heatmap(process_func, min_x, min_y, max_x, max_y, num_buckets, only_near_nodes, cmap='jet', alpha=0.75)
 
 def plot_valid_ff_spawns():
     X = []
