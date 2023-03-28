@@ -385,12 +385,14 @@ def process_in_buckets(min_x, min_y, max_x, max_y, ideal_num_buckets, func, only
         bucket_i += 1
         print(f'Processing bucket: {bucket_i} / {num_buckets}')
 
+        bz = 0.0
         if only_near_nodes:
             nearest_node = WORLD.find_node_for_firefighter_spawn_2d(bx, by, 3000.0)
             if nearest_node is None or dist_2d_max(nearest_node.x, nearest_node.y, bx, by) > bucket_size * 2.0 + nearest_node.path_width:
                 return float('nan')
+            bz = nearest_node.z
 
-        return func(bx, by)
+        return func(bx, by, bz)
 
     return X, Y, impl(X, Y)
 
@@ -546,7 +548,7 @@ def plot_average_total_firefighter_distance(ff, min_x, min_y, max_x, max_y, num_
 
 def plot_probability_that_firefighter_stays_on_coast(ff, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket, only_near_nodes=False):
     @np.vectorize
-    def process_func(bucket_x, bucket_y):
+    def process_func(bucket_x, bucket_y, bucket_z):
         ds = []
         for i in range(num_generations_per_bucket):
             d = 0.0
@@ -559,7 +561,7 @@ def plot_probability_that_firefighter_stays_on_coast(ff, min_x, min_y, max_x, ma
                 # we order spawns from farthest to nearest to the start position
                 # this is not the ideal heuristics, but fairly close to what actually happens
                 # TODO: TSP and actual road distance? needs pathfinding
-                ordered_spawns = sorted(spawns, key=lambda s: -dist_3d(s.x, s.y, s.z, bucket_x, bucket_y, 20.0))
+                ordered_spawns = sorted(spawns, key=lambda s: -dist_3d(s.x, s.y, s.z, bucket_x, bucket_y, bucket_z))
                 for s in ordered_spawns:
                     d += dist_3d_manhattan(x, y, z, s.x, s.y, s.z)
                     x = s.x
