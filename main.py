@@ -382,20 +382,22 @@ class HeatMap:
         self.Z = None
 
     def process_in_buckets(self, func, samples_per_bucket, only_near_nodes=False, combine='avg'):
-        bucket_i = 0
+        bucket_i = -1 # for some reason gets called twice on the first coord
         @np.vectorize
         def impl(bx, by):
             nonlocal func
             nonlocal bucket_i
             bucket_i += 1
-            print(f'Processing bucket: {bucket_i} / {self.actual_num_buckets}')
 
             bz = 0.0
             if only_near_nodes:
                 nearest_node = WORLD.find_node_for_firefighter_spawn_2d(bx, by, 3000.0)
                 if nearest_node is None or dist_2d_max(nearest_node.x, nearest_node.y, bx, by) > self.bucket_size * 2.0 + nearest_node.path_width:
+                    print(f'Processing bucket: {bucket_i} / {self.actual_num_buckets} (skipped)')
                     return float('nan')
                 bz = nearest_node.z
+
+            print(f'Processing bucket: {bucket_i} / {self.actual_num_buckets}')
 
             vs = []
             for i in range(samples_per_bucket):
@@ -406,7 +408,6 @@ class HeatMap:
                 return sum(vs) / len(vs)
             else:
                 assert False
-
         self.Z = impl(self.X, self.Y)
 
     def smoothen(self, factor):
