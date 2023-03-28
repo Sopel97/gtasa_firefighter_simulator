@@ -3,6 +3,7 @@ import glob
 import random
 import itertools
 import numpy as np
+import networkx as nx
 from matplotlib import pyplot as plt
 from matplotlib.widgets import Button
 from sklearn.neighbors import KDTree
@@ -196,6 +197,26 @@ class World:
                     self.link_lengths.append(ss.read_next_bytes(1))
 
         self.prepare_ff_acceleration()
+
+        self.prepare_graph_for_pathfinding()
+
+    def prepare_graph_for_pathfinding(self):
+        self.node_graph = nx.Graph()
+
+        # Add nodes first
+        for nodes_in_area in self.vehicle_nodes:
+            for node in nodes_in_area:
+                self.node_graph.add_node((node.area_id, node.node_id))
+
+        # Only add edges after all nodes are added, just so the semantics are clear.
+        for nodes_in_area in self.vehicle_nodes:
+            for node in nodes_in_area:
+                for j in range(node.num_links):
+                    link = self.node_links[node.area_id][node.link_id + j]
+                    neighbour_node = self.vehicle_nodes[link.area_id][link.node_id]
+                    dist = dist_3d(neighbour_node.x, neighbour_node.y, neighbour_node.z, node.x, node.y, node.z)
+                    # TODO: add some heuristics? for example increase weight for inclines and reduce for declines?
+                    self.node_graph.add_edge((node.area_id, node.node_id), (link.area_id, link.node_id), weight=dist)
 
     def prepare_ff_acceleration(self):
         self.ff_acceleration_nodes = []
