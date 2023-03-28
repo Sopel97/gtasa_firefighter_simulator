@@ -219,7 +219,7 @@ class World:
         self.ff_acceleration = KDTree(ff_acceleration_coords, metric='manhattan')
 
     def find_node_for_firefighter_spawn(self, x, y, z, max_dist):
-        d, i = self.ff_acceleration.query([[x, y, z]], k=1)
+        d, i = self.ff_acceleration.query([[x, y, 3*z]], k=1)
         node = self.ff_acceleration_nodes[i[0][0]]
         dist = abs(node.x - x) + abs(node.y - y) + 3 * abs(node.z - z)
         if dist < max_dist:
