@@ -220,12 +220,17 @@ class World:
 
     def prepare_ff_acceleration(self):
         self.ff_acceleration_nodes = []
+        self.node_acceleration_nodes = []
         ff_acceleration_coords = []
         ff_acceleration_coords_2d = []
+        node_acceleration_coords = []
         for area_id in range(len(self.vehicle_nodes)):
             nodes_in_area = self.vehicle_nodes[area_id]
             for i in range(len(nodes_in_area)):
                 node = nodes_in_area[i]
+                node_acceleration_coords.append([node.x, node.y, node.z])
+                self.node_acceleration_nodes.append(node)
+
                 if node.is_disabled or node.boats: # must not be disabled nor for boats
                     continue
                 for j in range(node.num_links):
@@ -245,6 +250,18 @@ class World:
 
         self.ff_acceleration = KDTree(ff_acceleration_coords, metric='manhattan')
         self.ff_acceleration_2d = KDTree(ff_acceleration_coords_2d, metric='manhattan')
+        self.node_acceleration = KDTree(node_acceleration_coords)
+
+    def get_length_of_path_going_through_points(self, points):
+        nodes = []
+        length = 0
+        for point in points:
+            nodes.append(self.find_nearest_node(point[0], point[1], point[2]))
+
+        for source, destination in zip(nodes[:-1], nodes[1:]):
+            length += nx.dijkstra_path_length(self.node_graph, (source.area_id, source.node_id), (destination.area_id, destination.node_id))
+
+        return length
 
     def find_node_for_firefighter_spawn(self, x, y, z, max_dist):
         d, i = self.ff_acceleration.query([[x, y, 3*z]], k=1)
@@ -261,6 +278,11 @@ class World:
         if dist < max_dist:
             return node
         return None
+
+    def find_nearest_node(self, x, y, z):
+        d, i = self.node_acceleration.query([[x, y, z]], k=1)
+        node = self.node_acceleration_nodes[i[0][0]]
+        return node
 
     def find_vehicle_node_closest_to_coords(self, x, y, z, max_dist, boats=False, allow_dead_ends=False, allow_disabled=False):
         closest_node = None
@@ -545,7 +567,7 @@ def plot_average_distance_to_complete_and_drive_to_cj_house(ff, level, min_x, mi
         cj_x = 2490
         cj_y = -1690
         spawns = ff.generate_level(level, x, y, z)
-        locs = [(cj_x, cj_y, 20.0)] + [(s.x, s.y, s.z) for s in spawns]
+        locs = [(s.x, s.y, s.z) for s in spawns]
         dists = []
         # find best permutation, we can do it by brute force
         for permuted_locs in itertools.permutations(locs):
@@ -553,11 +575,26 @@ def plot_average_distance_to_complete_and_drive_to_cj_house(ff, level, min_x, mi
             yy = y
             zz = z
             d = 0.0
-            for s in permuted_locs:
+            for s in permuted_locs + ((cj_x, cj_y, 20.0),):
                 d += dist_3d_manhattan(xx, yy, zz, s[0], s[1], s[2])
                 xx = s[0]
                 yy = s[1]
                 zz = s[2]
+            dists.append(d)
+        return min(dists)
+
+    make_and_show_heatmap(sample_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
+
+def plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, level, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes=False):
+    def sample_func(x, y, z):
+        cj_x = 2490
+        cj_y = -1690
+        spawns = ff.generate_level(level, x, y, z)
+        locs = [(s.x, s.y, s.z) for s in spawns]
+        dists = []
+        # find best permutation, we can do it by brute force
+        for permuted_locs in itertools.permutations(locs):
+            d = WORLD.get_length_of_path_going_through_points(((x, y, z),) + permuted_locs + ((cj_x, cj_y, 20.0),))
             dists.append(d)
         return min(dists)
 
@@ -633,4 +670,4 @@ ff = FirefighterMission(0)
 #plot_probability_that_firefighter_stays_on_coast(ff, 2750.0, -1200.0, 2950.0, -500.0, 512, 200, True)
 #plot_valid_ff_spawns()
 #plot_distance_to_closest_road()
-plot_average_distance_to_complete_and_drive_to_cj_house(ff, 12, 1700.0, -2300.0, 2950.0, 400.0, 2048, 8, True)
+plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, 12, 1700.0, -2300.0, 2950.0, 400.0, 2048, 8, True)
