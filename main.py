@@ -1,6 +1,7 @@
 import struct
 import glob
 import random
+import itertools
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.widgets import Button
@@ -18,6 +19,9 @@ def dist_3d(x0, y0, z0, x1, y1, z1):
 
 def dist_3d_manhattan(x0, y0, z0, x1, y1, z1):
     return abs(x0-x1) + abs(y0-y1) + abs(z0-z1)
+
+def dist_2d_manhattan(x0, y0, x1, y1):
+    return abs(x0-x1) + abs(y0-y1)
 
 def dist_3d_max(x0, y0, z0, x1, y1, z1):
     return max([abs(x0-x1), abs(y0-y1), abs(z0-z1)])
@@ -515,6 +519,29 @@ def plot_probability_that_firefighter_stays_on_coast(ff, min_x, min_y, max_x, ma
 
     make_and_show_heatmap(sample_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
 
+def plot_average_distance_to_complete_and_drive_to_cj_house(ff, level, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes=False):
+    def sample_func(x, y, z):
+        cj_x = 2490
+        cj_y = -1690
+        spawns = ff.generate_level(level, x, y, z)
+        locs = [(cj_x, cj_y, 20.0)] + [(s.x, s.y, s.z) for s in spawns]
+        dists = []
+        # find best permutation, we can do it by brute force
+        for permuted_locs in itertools.permutations(locs):
+            xx = x
+            yy = y
+            zz = z
+            d = 0.0
+            for s in permuted_locs:
+                d += dist_3d_manhattan(xx, yy, zz, s[0], s[1], s[2])
+                xx = s[0]
+                yy = s[1]
+                zz = s[2]
+            dists.append(d)
+        return min(dists)
+
+    make_and_show_heatmap(sample_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
+
 def plot_valid_ff_spawns():
     X = []
     Y = []
@@ -578,10 +605,11 @@ plt.show()
 
 ff = FirefighterMission(0)
 #plot_average_distance_to_farthest_spawn(ff, 1, 2700.0, -1200.0, 3000.0, -600.0, 128, 1)
-plot_probability_of_multizone_split(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 32, True)
+#plot_probability_of_multizone_split(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 32, True)
 #plot_probability_of_multizone_split(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 1024, 4)
 #plot_average_distance_between_spawns(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 2048, 64)
 #plot_average_total_firefighter_distance(ff, 2500.0, -1900.0, 2950.0, 200.0, 1024, 16, True)
 #plot_probability_that_firefighter_stays_on_coast(ff, 2750.0, -1200.0, 2950.0, -500.0, 512, 200, True)
 #plot_valid_ff_spawns()
 #plot_distance_to_closest_road()
+plot_average_distance_to_complete_and_drive_to_cj_house(ff, 12, 1700.0, -2300.0, 2950.0, 400.0, 2048, 8, True)
