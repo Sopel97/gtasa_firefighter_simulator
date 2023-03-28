@@ -435,17 +435,17 @@ def make_and_show_heatmap(func, min_x, min_y, max_x, max_y, ideal_num_buckets, s
 
 def plot_average_distance_to_farthest_spawn(ff, level, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes=False):
     @np.vectorize
-    def process_func(bucket_x, bucket_y, bucket_z):
-        spawns = ff.generate_level(level, bucket_x, bucket_y, bucket_z)
-        return max(dist_3d(s.x, s.y, s.z, bucket_x, bucket_y, bucket_z) for s in spawns)
+    def sample_func(x, y, z):
+        spawns = ff.generate_level(level, x, y, z)
+        return max(dist_3d(s.x, s.y, s.z, x, y, z) for s in spawns)
 
-    make_and_show_heatmap(process_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
 
 def plot_average_distance_between_spawns(ff, level, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes=False):
     @np.vectorize
-    def process_func(bucket_x, bucket_y, bucket_z):
+    def sample_func(x, y, z):
         ds = []
-        spawns = ff.generate_level(level, bucket_x, bucket_y, bucket_z)
+        spawns = ff.generate_level(level, x, y, z)
         for i in range(len(spawns)):
             for j in range(i + 1, len(spawns)):
                 s0 = spawns[i]
@@ -454,39 +454,36 @@ def plot_average_distance_between_spawns(ff, level, min_x, min_y, max_x, max_y, 
                 ds.append(d)
         return sum(ds) / len(ds)
 
-    make_and_show_heatmap(process_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
 
 def plot_distance_to_closest_road():
-    def process_func(bucket_x, bucket_y, bucket_z):
-        nearest_node = WORLD.find_node_for_firefighter_spawn_2d(bucket_x, bucket_y, 3000.0)
-        return dist_2d_max(nearest_node.x, nearest_node.y, bucket_x, bucket_y)
+    def sample_func(x, y, z):
+        nearest_node = WORLD.find_node_for_firefighter_spawn_2d(x, y, 3000.0)
+        return dist_2d_max(nearest_node.x, nearest_node.y, x, y)
 
-    make_and_show_heatmap(process_func, 2500.0, -1900.0, 2950.0, 200.0, 2048, 1, False, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, 2500.0, -1900.0, 2950.0, 200.0, 2048, 1, False, cmap='jet', alpha=0.75)
 
 def plot_probability_of_multizone_split(ff, level, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes=False):
-    def process_func(bucket_x, bucket_y, bucket_z):
-        spawns = ff.generate_level(level, bucket_x, bucket_y, bucket_z)
+    def sample_func(x, y, z):
+        spawns = ff.generate_level(level, x, y, z)
         for spawn in spawns[1:]: # using all spawns would also include spawns outside of player's zone
             if not same_zone(spawn.x, spawn.y, spawn.z, spawns[0].x, spawns[0].y, spawns[0].z):
                 return 1
         return 0
 
-    make_and_show_heatmap(process_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
 
 def plot_average_total_firefighter_distance(ff, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes=False):
     @np.vectorize
-    def process_func(bucket_x, bucket_y, bucket_z):
+    def sample_func(x, y, z):
         ds = []
         d = 0.0
-        x = bucket_x
-        y = bucket_y
-        z = bucket_z
         for level in range(1, 13):
             spawns = ff.generate_level(level, x, y, z)
             # we order spawns from farthest to nearest to the start position
             # this is not the ideal heuristics, but fairly close to what actually happens
             # TODO: TSP and actual road distance? needs pathfinding
-            ordered_spawns = sorted(spawns, key=lambda s: -dist_3d(s.x, s.y, s.z, bucket_x, bucket_y, bucket_z))
+            ordered_spawns = sorted(spawns, key=lambda s: -dist_3d(s.x, s.y, s.z, x, y, z))
             for s in ordered_spawns:
                 d += dist_3d_manhattan(x, y, z, s.x, s.y, s.z)
                 x = s.x
@@ -495,20 +492,17 @@ def plot_average_total_firefighter_distance(ff, min_x, min_y, max_x, max_y, num_
         ds.append(d)
         return sum(ds) / len(ds)
 
-    make_and_show_heatmap(process_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
 
 def plot_probability_that_firefighter_stays_on_coast(ff, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes=False):
     @np.vectorize
-    def process_func(bucket_x, bucket_y, bucket_z):
-        x = bucket_x
-        y = bucket_y
-        z = bucket_z
+    def sample_func(x, y, z):
         for level in range(1, 13):
             spawns = ff.generate_level(level, x, y, z)
             # we order spawns from farthest to nearest to the start position
             # this is not the ideal heuristics, but fairly close to what actually happens
             # TODO: TSP and actual road distance? needs pathfinding
-            ordered_spawns = sorted(spawns, key=lambda s: -dist_3d(s.x, s.y, s.z, bucket_x, bucket_y, bucket_z))
+            ordered_spawns = sorted(spawns, key=lambda s: -dist_3d(s.x, s.y, s.z, x, y, z))
             for s in ordered_spawns:
                 x = s.x
                 y = s.y
@@ -518,7 +512,7 @@ def plot_probability_that_firefighter_stays_on_coast(ff, min_x, min_y, max_x, ma
 
         return 1
 
-    make_and_show_heatmap(process_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
 
 def plot_valid_ff_spawns():
     X = []
