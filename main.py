@@ -196,6 +196,7 @@ class World:
     def prepare_ff_acceleration(self):
         self.ff_acceleration_nodes = []
         ff_acceleration_coords = []
+        ff_acceleration_coords_2d = []
         for area_id in range(len(self.vehicle_nodes)):
             nodes_in_area = self.vehicle_nodes[area_id]
             for i in range(len(nodes_in_area)):
@@ -213,15 +214,25 @@ class World:
                     # and at least 10.0 units of straight road
                     if dist_3d(neighbour_node.x, neighbour_node.y, neighbour_node.z, node.x, node.y, node.z) > 10.0:
                         ff_acceleration_coords.append([node.x, node.y, node.z * 3.0])
+                        ff_acceleration_coords_2d.append([node.x, node.y])
                         self.ff_acceleration_nodes.append(node)
                         break
 
         self.ff_acceleration = KDTree(ff_acceleration_coords, metric='manhattan')
+        self.ff_acceleration_2d = KDTree(ff_acceleration_coords_2d, metric='manhattan')
 
     def find_node_for_firefighter_spawn(self, x, y, z, max_dist):
         d, i = self.ff_acceleration.query([[x, y, 3*z]], k=1)
         node = self.ff_acceleration_nodes[i[0][0]]
         dist = abs(node.x - x) + abs(node.y - y) + 3 * abs(node.z - z)
+        if dist < max_dist:
+            return node
+        return None
+
+    def find_node_for_firefighter_spawn_2d(self, x, y, max_dist):
+        d, i = self.ff_acceleration_2d.query([[x, y]], k=1)
+        node = self.ff_acceleration_nodes[i[0][0]]
+        dist = abs(node.x - x) + abs(node.y - y)
         if dist < max_dist:
             return node
         return None
@@ -375,8 +386,8 @@ def process_in_buckets(min_x, min_y, max_x, max_y, ideal_num_buckets, func, only
         print(f'Processing bucket: {bucket_i} / {num_buckets}')
 
         if only_near_nodes:
-            nearest_node = WORLD.find_node_for_firefighter_spawn(bx, by, 20.0, 3000.0)
-            if nearest_node is None or dist_2d_max(nearest_node.x, nearest_node.y, bx, by) > bucket_size + nearest_node.path_width:
+            nearest_node = WORLD.find_node_for_firefighter_spawn_2d(bx, by, 3000.0)
+            if nearest_node is None or dist_2d_max(nearest_node.x, nearest_node.y, bx, by) > bucket_size * 2.0 + nearest_node.path_width:
                 return float('nan')
 
         return func(bx, by)
@@ -457,6 +468,15 @@ def show_heatmap(*args, **kwargs):
     fig.colorbar(c, ax=ax)
 
     plt.show()
+
+def plot_distance_to_closest_road():
+    def process_func(bucket_x, bucket_y):
+        nearest_node = WORLD.find_node_for_firefighter_spawn_2d(bucket_x, bucket_y, 3000.0)
+        return dist_2d_max(nearest_node.x, nearest_node.y, bucket_x, bucket_y)
+
+    X, Y, Z = process_in_buckets(2500.0, -1900.0, 2950.0, 200.0, 2048, process_func, False)
+
+    show_heatmap(X, Y, Z, cmap='Reds', alpha=0.75)
 
 def plot_probability_of_multizone_split(ff, level, min_x, min_y, max_x, max_y, num_buckets, num_generations_per_bucket, only_near_nodes=False):
     def process_func(bucket_x, bucket_y):
@@ -644,9 +664,10 @@ plt.show()
 
 ff = FirefighterMission(0)
 #plot_average_distance_to_farthest_spawn(ff, 1, 2700.0, -1200.0, 3000.0, -600.0, 128, 1)
-#plot_probability_of_multizone_split(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 8, True)
+plot_probability_of_multizone_split(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 8, True)
 #plot_probability_of_multizone_split(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 1024, 4)
 #plot_average_distance_between_spawns(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 2048, 64)
 #plot_average_total_firefighter_distance(ff, 2500.0, -1900.0, 2950.0, 200.0, 1024, 16, True)
 #plot_probability_that_firefighter_stays_on_coast(ff, 2500.0, -1900.0, 2950.0, 200.0, 512, 100, True)
-plot_valid_ff_spawns()
+#plot_valid_ff_spawns()
+#plot_distance_to_closest_road()
