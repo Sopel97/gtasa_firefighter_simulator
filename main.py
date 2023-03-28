@@ -11,6 +11,19 @@ from zone import *
 NODES_GLOB = './nodes/nodes*.dat'
 
 RADAR_IMAGE_BW = plt.imread('./assets/radar_bw.png')
+RADAR_IMAGE_EXTENTS = [-2998, 3002, -2998, 3002]
+
+def dist_3d(x0, y0, z0, x1, y1, z1):
+    return ((x0-x1)**2 + (y0-y1)**2 + (z0-z1)**2)**0.5
+
+def dist_3d_manhattan(x0, y0, z0, x1, y1, z1):
+    return abs(x0-x1) + abs(y0-y1) + abs(z0-z1)
+
+def dist_3d_max(x0, y0, z0, x1, y1, z1):
+    return max([abs(x0-x1), abs(y0-y1), abs(z0-z1)])
+
+def dist_2d_max(x0, y0, x1, y1):
+    return max([abs(x0-x1), abs(y0-y1)])
 
 class StructStream:
     def __init__(self, data):
@@ -73,7 +86,7 @@ class VehicleNode:
 
         flags_stream = BitStream(ss.read_next('<L', 4))
 
-        self.link_count = flags_stream.read_next_int(4)
+        self.num_links = flags_stream.read_next_int(4)
         self.dead_end = flags_stream.read_next_bool()
         self.is_disabled = flags_stream.read_next_bool()
         self.roadblocks = flags_stream.read_next_bool()
@@ -140,7 +153,7 @@ class World:
     def __init__(self):
         self.vehicle_nodes = [[] for i in range(64)]
         self.navi_nodes = []
-        self.node_links = []
+        self.node_links = [[] for i in range(64)]
         self.link_lengths = []
 
         for filename in glob.glob(NODES_GLOB):
@@ -154,10 +167,12 @@ class World:
                 num_navi_nodes = ss.read_next('<L', 4)
                 num_links = ss.read_next('<L', 4)
 
+                area_id = 0
                 for i in range(num_vehicle_nodes):
                     node = VehicleNode(ss.read_next_bytes(VehicleNode.SIZEOF))
                     assert node.node_id == len(self.vehicle_nodes[node.area_id])
                     self.vehicle_nodes[node.area_id].append(node)
+                    area_id = node.area_id
 
                 ss.skip(28 * num_ped_nodes) # not needed
 
@@ -167,7 +182,7 @@ class World:
 
                 for i in range(num_links):
                     link = NodeLink(ss.read_next_bytes(NodeLink.SIZEOF))
-                    self.node_links.append(link)
+                    self.node_links[area_id].append(link)
 
                 ss.skip(768) # unknown section
 
@@ -176,14 +191,31 @@ class World:
                 for i in range(num_navi_nodes):
                     self.link_lengths.append(ss.read_next_bytes(1))
 
+        self.prepare_ff_acceleration()
+
+    def prepare_ff_acceleration(self):
         self.ff_acceleration_nodes = []
         ff_acceleration_coords = []
-        for nodes in self.vehicle_nodes:
-            for node in nodes:
-                if node.dead_end or node.is_disabled or node.boats:
+        for area_id in range(len(self.vehicle_nodes)):
+            nodes_in_area = self.vehicle_nodes[area_id]
+            for i in range(len(nodes_in_area)):
+                node = nodes_in_area[i]
+                if node.is_disabled or node.boats: # must not be disabled nor for boats
                     continue
-                ff_acceleration_coords.append([node.x, node.y, node.z * 3.0])
-                self.ff_acceleration_nodes.append(node)
+                for j in range(node.num_links):
+                    link = self.node_links[node.area_id][node.link_id + j]
+                    neighbour_node = self.vehicle_nodes[link.area_id][link.node_id]
+
+                    # must have a neighbour that's also not disabled nor for boats
+                    if neighbour_node.is_disabled or neighbour_node.boats:
+                        continue
+
+                    # and at least 10.0 units of straight road
+                    if dist_3d(neighbour_node.x, neighbour_node.y, neighbour_node.z, node.x, node.y, node.z) > 10.0:
+                        ff_acceleration_coords.append([node.x, node.y, node.z * 3.0])
+                        self.ff_acceleration_nodes.append(node)
+                        break
+
         self.ff_acceleration = KDTree(ff_acceleration_coords, metric='manhattan')
 
     def find_node_for_firefighter_spawn(self, x, y, z, max_dist):
@@ -230,18 +262,6 @@ class FirefighterMissionSpawnPoint:
         self.num_passengers = num_passengers
 
 WORLD = World()
-
-def dist_3d(x0, y0, z0, x1, y1, z1):
-    return ((x0-x1)**2 + (y0-y1)**2 + (z0-z1)**2)**0.5
-
-def dist_3d_manhattan(x0, y0, z0, x1, y1, z1):
-    return abs(x0-x1) + abs(y0-y1) + abs(z0-z1)
-
-def dist_3d_max(x0, y0, z0, x1, y1, z1):
-    return max([abs(x0-x1), abs(y0-y1), abs(z0-z1)])
-
-def dist_2d_max(x0, y0, x1, y1):
-    return max([abs(x0-x1), abs(y0-y1)])
 
 class FirefighterMission:
     def __init__(self, num_unlocked_cities=0):
@@ -385,7 +405,7 @@ def plot_average_distance_to_farthest_spawn(ff, level, min_x, min_y, max_x, max_
 
     plt.rcParams["figure.figsize"] = [9, 9]
     fig, ax = plt.subplots()
-    im = ax.imshow(im, extent=[-3000, 3000, -3000, 3000])
+    im = ax.imshow(im, extent=RADAR_IMAGE_EXTENTS)
     draw_zones(ax)
 
     c = ax.pcolormesh(bx, by, bz, cmap='Reds', alpha=0.75)
@@ -419,7 +439,7 @@ def plot_average_distance_between_spawns(ff, level, min_x, min_y, max_x, max_y, 
 
     plt.rcParams["figure.figsize"] = [9, 9]
     fig, ax = plt.subplots()
-    im = ax.imshow(im, extent=[-3000, 3000, -3000, 3000])
+    im = ax.imshow(im, extent=RADAR_IMAGE_EXTENTS)
     draw_zones(ax)
 
     c = ax.pcolormesh(bx, by, bz, cmap='Reds', alpha=0.75)
@@ -430,7 +450,7 @@ def plot_average_distance_between_spawns(ff, level, min_x, min_y, max_x, max_y, 
 def show_heatmap(*args, **kwargs):
     plt.rcParams["figure.figsize"] = [9, 9]
     fig, ax = plt.subplots()
-    im = ax.imshow(RADAR_IMAGE_BW, extent=[-3000, 3000, -3000, 3000])
+    im = ax.imshow(RADAR_IMAGE_BW, extent=RADAR_IMAGE_EXTENTS)
     draw_zones(ax)
 
     c = ax.pcolormesh(*args, **kwargs)
@@ -496,7 +516,7 @@ def plot_average_total_firefighter_distance(ff, min_x, min_y, max_x, max_y, num_
 
     plt.rcParams["figure.figsize"] = [9, 9]
     fig, ax = plt.subplots()
-    im = ax.imshow(im, extent=[-3000, 3000, -3000, 3000])
+    im = ax.imshow(im, extent=RADAR_IMAGE_EXTENTS)
     draw_zones(ax)
 
     c = ax.pcolormesh(bx, by, bz, cmap='Reds', alpha=0.75)
@@ -553,11 +573,27 @@ def plot_probability_that_firefighter_stays_on_coast(ff, min_x, min_y, max_x, ma
 
     plt.rcParams["figure.figsize"] = [9, 9]
     fig, ax = plt.subplots()
-    im = ax.imshow(im, extent=[-3000, 3000, -3000, 3000])
+    im = ax.imshow(im, extent=RADAR_IMAGE_EXTENTS)
     draw_zones(ax)
 
     c = ax.pcolormesh(bx, by, bz, cmap='Reds', alpha=0.75)
     fig.colorbar(c, ax=ax)
+
+    plt.show()
+
+def plot_valid_ff_spawns():
+    X = []
+    Y = []
+    for node in WORLD.ff_acceleration_nodes:
+        X.append(node.x)
+        Y.append(node.y)
+
+    plt.rcParams["figure.figsize"] = [9, 9]
+    fig, ax = plt.subplots()
+    im = ax.imshow(RADAR_IMAGE_BW, extent=RADAR_IMAGE_EXTENTS)
+    draw_zones(ax)
+
+    c = ax.scatter(X, Y)
 
     plt.show()
 
@@ -581,7 +617,7 @@ RADAR_IMAGE = im = plt.imread('./assets/radar.png')
 
 plt.rcParams["figure.figsize"] = [9, 9]
 fig, ax = plt.subplots()
-im = ax.imshow(im, extent=[-3000, 3000, -3000, 3000])
+im = ax.imshow(im, extent=RADAR_IMAGE_EXTENTS)
 sp, = ax.plot([], [], label='', ms=10, color='r', marker='o', ls='')
 
 def generate_next(event):
@@ -608,8 +644,9 @@ plt.show()
 
 ff = FirefighterMission(0)
 #plot_average_distance_to_farthest_spawn(ff, 1, 2700.0, -1200.0, 3000.0, -600.0, 128, 1)
-plot_probability_of_multizone_split(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 8, True)
+#plot_probability_of_multizone_split(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 8, True)
 #plot_probability_of_multizone_split(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 1024, 4)
 #plot_average_distance_between_spawns(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 2048, 64)
 #plot_average_total_firefighter_distance(ff, 2500.0, -1900.0, 2950.0, 200.0, 1024, 16, True)
 #plot_probability_that_firefighter_stays_on_coast(ff, 2500.0, -1900.0, 2950.0, 200.0, 512, 100, True)
+plot_valid_ff_spawns()
