@@ -7,6 +7,7 @@ import networkx as nx
 from matplotlib import pyplot as plt
 from matplotlib.widgets import Button
 from sklearn.neighbors import KDTree
+from matplotlib import collections as mc
 
 from zone import *
 
@@ -616,6 +617,31 @@ def plot_valid_ff_spawns():
 
     plt.show()
 
+def plot_pathfinding_graph():
+    X = []
+    Y = []
+    for area_id, node_id in WORLD.node_graph.nodes():
+        node = WORLD.vehicle_nodes[area_id][node_id]
+        X.append(node.x)
+        Y.append(node.y)
+
+    lines = []
+    for (area_id0, node_id0), (area_id1, node_id1) in WORLD.node_graph.edges():
+        node0 = WORLD.vehicle_nodes[area_id0][node_id0]
+        node1 = WORLD.vehicle_nodes[area_id1][node_id1]
+        lines.append([(node0.x, node0.y), (node1.x, node1.y)])
+
+    plt.rcParams["figure.figsize"] = [9, 9]
+    fig, ax = plt.subplots()
+    im = ax.imshow(RADAR_IMAGE_BW, extent=RADAR_IMAGE_EXTENTS)
+    draw_zones(ax)
+
+    c = ax.scatter(X, Y, s=3**2)
+    lc = mc.LineCollection(lines, linewidths=2)
+    ax.add_collection(lc)
+
+    plt.show()
+
 '''
 ff = FirefighterMission(0)
 d = []
@@ -661,6 +687,8 @@ bnext.on_clicked(generate_next)
 plt.show()
 '''
 
+plot_pathfinding_graph()
+
 ff = FirefighterMission(0)
 #plot_average_distance_to_farthest_spawn(ff, 1, 2700.0, -1200.0, 3000.0, -600.0, 128, 1)
 #plot_probability_of_multizone_split(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 32, True)
@@ -670,4 +698,4 @@ ff = FirefighterMission(0)
 #plot_probability_that_firefighter_stays_on_coast(ff, 2750.0, -1200.0, 2950.0, -500.0, 512, 200, True)
 #plot_valid_ff_spawns()
 #plot_distance_to_closest_road()
-plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, 12, 1700.0, -2300.0, 2950.0, 400.0, 2048, 8, True)
+#plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, 12, 1700.0, -2300.0, 2950.0, 400.0, 2048, 8, True)
