@@ -241,6 +241,16 @@ class World:
         add_edge(14, 196, 6, 357) # LS airport entrance
         add_edge(6, 357, 6, 306) # LS airport interconnectivity
 
+        add_edge(38, 696, 38, 526) # on some dumb patch of land in northern LS
+        add_edge(38, 627, 38, 574)
+        add_edge(38, 640, 38, 524)
+
+        # TODO: what do we do with open areas? how do we connect the nodes on there?
+        #       for highways we can maybe define stretches of parallel paths
+        #       and connects all nodes within some distance (or % closest) between these paths
+        #       but for larger empty grass areas it's a bit of an issue
+        #       also, we might need to move to a directed graph if we go for cuts...
+
         self.node_graph.add_edge((node.area_id, node.node_id), (link.area_id, link.node_id), weight=dist)
 
         self.node_acceleration = KDTree(node_acceleration_coords)
