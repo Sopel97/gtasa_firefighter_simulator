@@ -331,11 +331,6 @@ class World:
 
         return closest_node
 
-    def find_vehicle_node_pair_closest_to_coords(self, x, y, z, min_dist, max_dist, ignore_disabled, ignore_between_levels, water_path):
-        # TODO: Match behaviour in SA. It's unclear how this function works exactly because
-        #       paths are encoded differently than in VC.
-        pass
-
 class FirefighterMissionSpawnPoint:
     def __init__(self, x, y, z, num_attempts, num_passengers):
         self.x = x
