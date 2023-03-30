@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 from matplotlib.widgets import Button
 from sklearn.neighbors import KDTree
 from matplotlib import collections as mc
+from matplotlib.patches import Circle
 
 from zone import *
 
@@ -264,7 +265,10 @@ class World:
             nodes.append(self.find_nearest_node(point[0], point[1], point[2]))
 
         for source, destination in zip(nodes[:-1], nodes[1:]):
-            length += nx.dijkstra_path_length(self.node_graph, (source.area_id, source.node_id), (destination.area_id, destination.node_id))
+            try:
+                length += nx.dijkstra_path_length(self.node_graph, (source.area_id, source.node_id), (destination.area_id, destination.node_id))
+            except:
+                plot_pathfinding_graph({(source.area_id, source.node_id), (destination.area_id, destination.node_id)})
 
         return length
 
@@ -621,13 +625,15 @@ def plot_valid_ff_spawns():
 
     plt.show()
 
-def plot_pathfinding_graph():
-    X = []
-    Y = []
+def plot_pathfinding_graph(highlight_nodes=set()):
+    print(highlight_nodes)
+    circles = []
     for area_id, node_id in WORLD.node_graph.nodes():
         node = WORLD.vehicle_nodes[area_id][node_id]
-        X.append(node.x)
-        Y.append(node.y)
+        do_highlight = (area_id, node_id) in highlight_nodes
+        color = 'r' if do_highlight else 'b'
+        radius = 20 if do_highlight else 5
+        circles.append(Circle((node.x, node.y), radius, color=color))
 
     lines = []
     for (area_id0, node_id0), (area_id1, node_id1) in WORLD.node_graph.edges():
@@ -640,7 +646,9 @@ def plot_pathfinding_graph():
     im = ax.imshow(RADAR_IMAGE_BW, extent=RADAR_IMAGE_EXTENTS)
     draw_zones(ax)
 
-    c = ax.scatter(X, Y, s=3**2)
+    lc = mc.PatchCollection(circles)
+    ax.add_collection(lc)
+
     lc = mc.LineCollection(lines, linewidths=2)
     ax.add_collection(lc)
 
@@ -691,7 +699,7 @@ bnext.on_clicked(generate_next)
 plt.show()
 '''
 
-plot_pathfinding_graph()
+#plot_pathfinding_graph()
 
 ff = FirefighterMission(0)
 #plot_average_distance_to_farthest_spawn(ff, 1, 2700.0, -1200.0, 3000.0, -600.0, 128, 1)
@@ -702,4 +710,4 @@ ff = FirefighterMission(0)
 #plot_probability_that_firefighter_stays_on_coast(ff, 2750.0, -1200.0, 2950.0, -500.0, 512, 200, True)
 #plot_valid_ff_spawns()
 #plot_distance_to_closest_road()
-#plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, 12, 1700.0, -2300.0, 2950.0, 400.0, 2048, 8, True)
+plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, 12, 1700.0, -2300.0, 2950.0, 400.0, 2048, 8, True)
