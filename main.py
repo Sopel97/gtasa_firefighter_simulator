@@ -207,11 +207,15 @@ class World:
         # Add nodes first
         for nodes_in_area in self.vehicle_nodes:
             for node in nodes_in_area:
+                if node.boats:
+                    continue
                 self.node_graph.add_node((node.area_id, node.node_id))
 
         # Only add edges after all nodes are added, just so the semantics are clear.
         for nodes_in_area in self.vehicle_nodes:
             for node in nodes_in_area:
+                if node.boats:
+                    continue
                 for j in range(node.num_links):
                     link = self.node_links[node.area_id][node.link_id + j]
                     neighbour_node = self.vehicle_nodes[link.area_id][link.node_id]
