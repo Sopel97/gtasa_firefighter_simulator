@@ -205,11 +205,18 @@ class World:
     def prepare_graph_for_pathfinding(self):
         self.node_graph = nx.Graph()
 
+        self.node_acceleration_nodes = []
+        node_acceleration_coords = []
+
         # Add nodes first
         for nodes_in_area in self.vehicle_nodes:
             for node in nodes_in_area:
                 if node.boats:
                     continue
+
+                self.node_acceleration_nodes.append(node)
+                node_acceleration_coords.append([node.x, node.y, node.z])
+
                 self.node_graph.add_node((node.area_id, node.node_id))
 
         # Only add edges after all nodes are added, just so the semantics are clear.
@@ -224,18 +231,28 @@ class World:
                     # TODO: add some heuristics? for example increase weight for inclines and reduce for declines?
                     self.node_graph.add_edge((node.area_id, node.node_id), (link.area_id, link.node_id), weight=dist)
 
+        # add hardcoded edges for connectivity
+        def add_edge(a0, n0, a1, n1):
+            node0 = self.vehicle_nodes[a0][n0]
+            node1 = self.vehicle_nodes[a1][n1]
+            dist = dist_3d(node0.x, node0.y, node0.z, node1.x, node1.y, node1.z)
+            self.node_graph.add_edge((a0, n0), (a1, n1), weight=dist)
+
+        add_edge(14, 196, 6, 357) # LS airport entrance
+        add_edge(6, 357, 6, 306) # LS airport interconnectivity
+
+        self.node_graph.add_edge((node.area_id, node.node_id), (link.area_id, link.node_id), weight=dist)
+
+        self.node_acceleration = KDTree(node_acceleration_coords)
+
     def prepare_ff_acceleration(self):
         self.ff_acceleration_nodes = []
-        self.node_acceleration_nodes = []
         ff_acceleration_coords = []
         ff_acceleration_coords_2d = []
-        node_acceleration_coords = []
         for area_id in range(len(self.vehicle_nodes)):
             nodes_in_area = self.vehicle_nodes[area_id]
             for i in range(len(nodes_in_area)):
                 node = nodes_in_area[i]
-                node_acceleration_coords.append([node.x, node.y, node.z])
-                self.node_acceleration_nodes.append(node)
 
                 if node.is_disabled or node.boats: # must not be disabled nor for boats
                     continue
@@ -256,7 +273,6 @@ class World:
 
         self.ff_acceleration = KDTree(ff_acceleration_coords, metric='manhattan')
         self.ff_acceleration_2d = KDTree(ff_acceleration_coords_2d, metric='manhattan')
-        self.node_acceleration = KDTree(node_acceleration_coords)
 
     def get_length_of_path_going_through_points(self, points):
         nodes = []
@@ -626,14 +642,16 @@ def plot_valid_ff_spawns():
     plt.show()
 
 def plot_pathfinding_graph(highlight_nodes=set()):
-    print(highlight_nodes)
     circles = []
     for area_id, node_id in WORLD.node_graph.nodes():
         node = WORLD.vehicle_nodes[area_id][node_id]
         do_highlight = (area_id, node_id) in highlight_nodes
+        if do_highlight:
+            print(node.x, node.y, node.z, area_id, node_id)
         color = 'r' if do_highlight else 'b'
         radius = 20 if do_highlight else 5
-        circles.append(Circle((node.x, node.y), radius, color=color))
+        label = f'({area_id},{node_id})'
+        circles.append(Circle((node.x, node.y), radius, color=color, label=label))
 
     lines = []
     for (area_id0, node_id0), (area_id1, node_id1) in WORLD.node_graph.edges():
@@ -643,6 +661,7 @@ def plot_pathfinding_graph(highlight_nodes=set()):
 
     plt.rcParams["figure.figsize"] = [9, 9]
     fig, ax = plt.subplots()
+
     im = ax.imshow(RADAR_IMAGE_BW, extent=RADAR_IMAGE_EXTENTS)
     draw_zones(ax)
 
@@ -651,6 +670,14 @@ def plot_pathfinding_graph(highlight_nodes=set()):
 
     lc = mc.LineCollection(lines, linewidths=2)
     ax.add_collection(lc)
+
+    def on_plot_hover(event):
+        x = event.xdata
+        y = event.ydata
+        node = WORLD.find_nearest_node(x, y, 20.0)
+        print(node.x, node.y, node.z, node.area_id, node.node_id)
+
+    #fig.canvas.mpl_connect('motion_notify_event', on_plot_hover)
 
     plt.show()
 
@@ -699,7 +726,9 @@ bnext.on_clicked(generate_next)
 plt.show()
 '''
 
-#plot_pathfinding_graph()
+#plot_valid_ff_spawns()
+
+plot_pathfinding_graph()
 
 ff = FirefighterMission(0)
 #plot_average_distance_to_farthest_spawn(ff, 1, 2700.0, -1200.0, 3000.0, -600.0, 128, 1)
@@ -708,6 +737,5 @@ ff = FirefighterMission(0)
 #plot_average_distance_between_spawns(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 2048, 64)
 #plot_average_total_firefighter_distance(ff, 2500.0, -1900.0, 2950.0, 200.0, 1024, 16, True)
 #plot_probability_that_firefighter_stays_on_coast(ff, 2750.0, -1200.0, 2950.0, -500.0, 512, 200, True)
-#plot_valid_ff_spawns()
 #plot_distance_to_closest_road()
 plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, 12, 1700.0, -2300.0, 2950.0, 400.0, 2048, 8, True)
