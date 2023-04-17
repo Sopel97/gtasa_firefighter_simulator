@@ -547,6 +547,13 @@ def make_and_show_heatmap(func, area, show_params, *args, **kwargs):
     H.process_in_buckets(func, area.samples_per_bucket, area.only_near_nodes)
     show_heatmap(H, show_params, *args, **kwargs)
 
+def visualize_buckets(area, show_params):
+    @np.vectorize
+    def sample_func(x, y, z):
+        return random.random()
+
+    make_and_show_heatmap(sample_func, area, show_params.with_title(f'Random noise'), cmap='jet', alpha=0.75)
+
 def plot_average_distance_to_farthest_spawn(ff, level, area, show_params):
     @np.vectorize
     def sample_func(x, y, z):
@@ -826,6 +833,18 @@ def add_plot_command(subparsers, plot_func, cmd, lvl_param_name='level'):
     cli_add_show_params_arguments(subparser)
     subparser.add_argument(f'--{lvl_param_name}', type=int, default=1)
 
+def add_bucket_visualization_command(subparsers, name):
+    def handler_func(args):
+        area = SimulationArea(args.min_x, args.min_y, args.max_x, args.max_y, args.ideal_num_buckets, args.samples_per_bucket, args.only_near_nodes)
+        show_params = ShowParams(args.width_inches, args.height_inches, args.filename, args.dpi)
+        visualize_buckets(area, show_params)
+
+    subparser = subparsers.add_parser(name)
+    subparser.set_defaults(func=handler_func)
+
+    cli_add_area_arguments(subparser)
+    cli_add_show_params_arguments(subparser)
+
 def add_commands(subparsers):
     add_plot_command(subparsers, plot_average_distance_to_farthest_spawn, 'plot_average_distance_to_farthest_spawn')
     add_plot_command(subparsers, plot_average_distance_between_spawns, 'plot_average_distance_between_spawns')
@@ -835,6 +854,8 @@ def add_commands(subparsers):
     add_plot_command(subparsers, plot_probability_that_firefighter_stays_on_coast, 'plot_probability_that_firefighter_stays_on_coast', 'start_level')
     add_plot_command(subparsers, plot_average_distance_to_complete_and_drive_to_cj_house, 'plot_average_distance_to_complete_and_drive_to_cj_house', 'start_level')
     add_plot_command(subparsers, plot_average_distance_to_complete_and_drive_to_cj_house_2, 'plot_average_distance_to_complete_and_drive_to_cj_house_2', 'start_level')
+
+    add_bucket_visualization_command(subparsers, 'visualize_buckets')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
