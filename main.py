@@ -3,6 +3,7 @@ import glob
 import random
 import itertools
 import argparse
+import copy
 import sys
 import numpy as np
 import networkx as nx
@@ -513,11 +514,17 @@ class SimulationArea:
         self.only_near_nodes = only_near_nodes
 
 class ShowParams:
-    def __init__(self, width_inches=9, height_inches=9, filename=None, dpi=300):
+    def __init__(self, width_inches=9, height_inches=9, filename=None, dpi=300, title=None):
         self.width_inches = width_inches
         self.height_inches = height_inches
         self.filename = filename
         self.dpi = dpi
+        self.title = title
+
+    def with_title(self, title):
+        cpy = copy.deepcopy(self)
+        cpy.title = title
+        return cpy
 
 def show_heatmap(H, show_params, *args, **kwargs):
     plt.rcParams["figure.figsize"] = [show_params.width_inches, show_params.height_inches]
@@ -526,6 +533,9 @@ def show_heatmap(H, show_params, *args, **kwargs):
     draw_zones(ax)
 
     H.draw(fig, ax, *args, **kwargs)
+
+    if show_params.title:
+        fig.suptitle(show_params.title)
 
     if show_params.filename:
         plt.savefig(show_params.filename, dpi=show_params.dpi)
@@ -543,7 +553,7 @@ def plot_average_distance_to_farthest_spawn(ff, level, area, show_params):
         spawns = ff.generate_level(level, x, y, z)
         return max(dist_3d(s.x, s.y, s.z, x, y, z) for s in spawns)
 
-    make_and_show_heatmap(sample_func, area, show_params, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params.with_title(f'Average distance (straight line) to farthest spawn on level {level}'), cmap='jet', alpha=0.75)
 
 def plot_average_distance_between_spawns(ff, level, area, show_params):
     @np.vectorize
@@ -558,7 +568,7 @@ def plot_average_distance_between_spawns(ff, level, area, show_params):
                 ds.append(d)
         return sum(ds) / len(ds)
 
-    make_and_show_heatmap(sample_func, area, show_params, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params.with_title(f'Average distance (straight line) between spawns on level {level}'), cmap='jet', alpha=0.75)
 
 def plot_distance_to_closest_road(area, show_params):
     def sample_func(x, y, z):
@@ -575,7 +585,7 @@ def plot_probability_of_multizone_split(ff, level, area, show_params):
                 return 1
         return 0
 
-    make_and_show_heatmap(sample_func, area, show_params, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params.with_title(f'Probability of spawns splitting zones on level {level}'), cmap='jet', alpha=0.75)
 
 def plot_average_total_firefighter_distance(ff, start_level, area, show_params):
     @np.vectorize
@@ -596,7 +606,7 @@ def plot_average_total_firefighter_distance(ff, start_level, area, show_params):
         ds.append(d)
         return sum(ds) / len(ds)
 
-    make_and_show_heatmap(sample_func, area, show_params, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params.with_title(f'Average total firefighter distance (straight line, order by heuristic) starting at level {level}'), cmap='jet', alpha=0.75)
 
 def plot_probability_that_firefighter_stays_on_coast(ff, start_level, area, show_params):
     @np.vectorize
@@ -639,7 +649,7 @@ def plot_average_distance_to_complete_and_drive_to_cj_house(ff, level, area, sho
             dists.append(d)
         return min(dists)
 
-    make_and_show_heatmap(sample_func, area, show_params, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params.with_title(f'Average total [firefighter+drive to CJ\'s home] distance (manhattan, order by heuristic) on level {level}'), cmap='jet', alpha=0.75)
 
 def plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, level, area, show_params):
     def sample_func(x, y, z):
@@ -654,7 +664,7 @@ def plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, level, area, s
             dists.append(d)
         return min(dists)
 
-    make_and_show_heatmap(sample_func, area, show_params, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params.with_title(f'Average total [firefighter+drive to CJ\'s home] distance (road, order by heuristic) on level {level}'), cmap='jet', alpha=0.75)
 
 def plot_valid_ff_spawns():
     X = []
