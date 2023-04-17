@@ -14,7 +14,7 @@ def make_on_failure_callback(command):
 
 def run_command(command):
     print(f'INFO: Executing command: `{command}`')
-    subprocess.run(f'{sys.executable} main.py {command}', stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, universal_newlines=True)
+    subprocess.run(f'{sys.executable} main.py {command}', universal_newlines=True)
 
 if __name__ == '__main__':
     commands_filename = sys.argv[1]
