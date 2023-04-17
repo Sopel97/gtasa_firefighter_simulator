@@ -368,7 +368,11 @@ class FirefighterMission:
         max_y = y + rand_radius
         xx = random.uniform(min_x, max_x)
         yy = random.uniform(min_y, max_y)
-        nearest_node = WORLD.find_node_for_firefighter_spawn(xx, yy, z, 500)
+        if num_attempts < 1000:
+            nearest_node = WORLD.find_node_for_firefighter_spawn(xx, yy, z, 500)
+        else:
+            print(f'WARNING: more than 1000 spawn attempts at ({x}, {y}, {z})')
+            nearest_node = WORLD.find_node_for_firefighter_spawn(xx, yy, z, 10000)
 
         # No node nearby
         if nearest_node is None:
