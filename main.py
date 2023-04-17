@@ -2,6 +2,8 @@ import struct
 import glob
 import random
 import itertools
+import argparse
+import sys
 import numpy as np
 import networkx as nx
 from matplotlib import pyplot as plt
@@ -11,10 +13,6 @@ from matplotlib import collections as mc
 from matplotlib.patches import Circle
 
 from zone import *
-
-# We can ignore level 1 because it's resettable and usually the player
-# has good control on where it ends.
-FF_START_LEVEL = 2
 
 NODES_GLOB = './nodes/nodes*.dat'
 
@@ -514,40 +512,40 @@ class SimulationArea:
         self.samples_per_bucket = samples_per_bucket
         self.only_near_nodes = only_near_nodes
 
-class ShowHeatmapParams:
-    def __init__(self, width_inches=9, height_inches=9, dpi=300, filename=None):
+class ShowParams:
+    def __init__(self, width_inches=9, height_inches=9, filename=None, dpi=300):
         self.width_inches = width_inches
         self.height_inches = height_inches
-        self.dpi = dpi
         self.filename = filename
+        self.dpi = dpi
 
-def show_heatmap(H, params, *args, **kwargs):
-    plt.rcParams["figure.figsize"] = [params.width_inches, params.height_inches]
+def show_heatmap(H, show_params, *args, **kwargs):
+    plt.rcParams["figure.figsize"] = [show_params.width_inches, show_params.height_inches]
     fig, ax = plt.subplots()
     im = ax.imshow(RADAR_IMAGE_BW, extent=RADAR_IMAGE_EXTENTS)
     draw_zones(ax)
 
     H.draw(fig, ax, *args, **kwargs)
 
-    if params.filename:
-        plt.savefig(params.filename, dpi=params.dpi)
+    if show_params.filename:
+        plt.savefig(show_params.filename, dpi=show_params.dpi)
     else:
         plt.show()
 
-def make_and_show_heatmap(func, area, params, *args, **kwargs):
+def make_and_show_heatmap(func, area, show_params, *args, **kwargs):
     H = HeatMap(area.min_x, area.min_y, area.max_x, area.max_y, area.ideal_num_buckets)
     H.process_in_buckets(func, area.samples_per_bucket, area.only_near_nodes)
-    show_heatmap(H, params, *args, **kwargs)
+    show_heatmap(H, show_params, *args, **kwargs)
 
-def plot_average_distance_to_farthest_spawn(ff, level, area, params):
+def plot_average_distance_to_farthest_spawn(ff, level, area, show_params):
     @np.vectorize
     def sample_func(x, y, z):
         spawns = ff.generate_level(level, x, y, z)
         return max(dist_3d(s.x, s.y, s.z, x, y, z) for s in spawns)
 
-    make_and_show_heatmap(sample_func, area, params, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params, cmap='jet', alpha=0.75)
 
-def plot_average_distance_between_spawns(ff, level, area, params):
+def plot_average_distance_between_spawns(ff, level, area, show_params):
     @np.vectorize
     def sample_func(x, y, z):
         ds = []
@@ -560,16 +558,16 @@ def plot_average_distance_between_spawns(ff, level, area, params):
                 ds.append(d)
         return sum(ds) / len(ds)
 
-    make_and_show_heatmap(sample_func, area, params, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params, cmap='jet', alpha=0.75)
 
-def plot_distance_to_closest_road(area, params):
+def plot_distance_to_closest_road(area, show_params):
     def sample_func(x, y, z):
         nearest_node = WORLD.find_node_for_firefighter_spawn_2d(x, y, 3000.0)
         return dist_2d_max(nearest_node.x, nearest_node.y, x, y)
 
-    make_and_show_heatmap(sample_func, area, params, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params, cmap='jet', alpha=0.75)
 
-def plot_probability_of_multizone_split(ff, level, area, params):
+def plot_probability_of_multizone_split(ff, level, area, show_params):
     def sample_func(x, y, z):
         spawns = ff.generate_level(level, x, y, z)
         for spawn in spawns[1:]: # using all spawns would also include spawns outside of player's zone
@@ -577,14 +575,14 @@ def plot_probability_of_multizone_split(ff, level, area, params):
                 return 1
         return 0
 
-    make_and_show_heatmap(sample_func, area, params, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params, cmap='jet', alpha=0.75)
 
-def plot_average_total_firefighter_distance(ff, area, params):
+def plot_average_total_firefighter_distance(ff, start_level, area, show_params):
     @np.vectorize
     def sample_func(x, y, z):
         ds = []
         d = 0.0
-        for level in range(FF_START_LEVEL, 13):
+        for level in range(start_level, 13):
             spawns = ff.generate_level(level, x, y, z)
             # we order spawns from farthest to nearest to the start position
             # this is not the ideal heuristics, but fairly close to what actually happens
@@ -598,12 +596,12 @@ def plot_average_total_firefighter_distance(ff, area, params):
         ds.append(d)
         return sum(ds) / len(ds)
 
-    make_and_show_heatmap(sample_func, area, params, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params, cmap='jet', alpha=0.75)
 
-def plot_probability_that_firefighter_stays_on_coast(ff, area, params):
+def plot_probability_that_firefighter_stays_on_coast(ff, start_level, area, show_params):
     @np.vectorize
     def sample_func(x, y, z):
-        for level in range(FF_START_LEVEL, 13):
+        for level in range(start_level, 13):
             spawns = ff.generate_level(level, x, y, z)
             # we order spawns from farthest to nearest to the start position
             # this is not the ideal heuristics, but fairly close to what actually happens
@@ -618,9 +616,9 @@ def plot_probability_that_firefighter_stays_on_coast(ff, area, params):
 
         return 1
 
-    make_and_show_heatmap(sample_func, area, params, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params, cmap='jet', alpha=0.75)
 
-def plot_average_distance_to_complete_and_drive_to_cj_house(ff, level, area, params):
+def plot_average_distance_to_complete_and_drive_to_cj_house(ff, level, area, show_params):
     def sample_func(x, y, z):
         cj_x = 2490
         cj_y = -1690
@@ -641,9 +639,9 @@ def plot_average_distance_to_complete_and_drive_to_cj_house(ff, level, area, par
             dists.append(d)
         return min(dists)
 
-    make_and_show_heatmap(sample_func, area, params, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params, cmap='jet', alpha=0.75)
 
-def plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, level, area, params):
+def plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, level, area, show_params):
     def sample_func(x, y, z):
         cj_x = 2490
         cj_y = -1690
@@ -656,7 +654,7 @@ def plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, level, area, p
             dists.append(d)
         return min(dists)
 
-    make_and_show_heatmap(sample_func, area, params, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params, cmap='jet', alpha=0.75)
 
 def plot_valid_ff_spawns():
     X = []
@@ -773,5 +771,65 @@ plt.show()
 #plot_distance_to_closest_road()
 #plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, 12, 1700.0, -2300.0, 2950.0, 400.0, 2048, 8, True)
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+def cli_add_ff_arguments(parser):
+    parser.add_argument('--num_unlocked_cities', type=int, default=0)
+
+def cli_add_area_arguments(parser):
+    parser.add_argument('--min_x', type=float, default=2000)
+    parser.add_argument('--min_y', type=float, default=-2200)
+    parser.add_argument('--max_x', type=float, default=2950)
+    parser.add_argument('--max_y', type=float, default=400)
+    parser.add_argument('--ideal_num_buckets', type=int, default=32*1024)
+    parser.add_argument('--samples_per_bucket', type=int, default=32)
+    parser.add_argument('--only_near_nodes', type=str2bool, default=True)
+
+def cli_add_show_params_arguments(parser):
+    parser.add_argument('--width_inches', type=float, default=9)
+    parser.add_argument('--height_inches', type=float, default=9)
+    parser.add_argument('--filename', type=str, default=None)
+    parser.add_argument('--dpi', type=int, default=300)
+
+def add_plot_command(subparsers, plot_func, cmd, lvl_param_name='level'):
+    def handler_func(args):
+        area = SimulationArea(args.min_x, args.min_y, args.max_x, args.max_y, args.ideal_num_buckets, args.samples_per_bucket, args.only_near_nodes)
+        show_params = ShowParams(args.width_inches, args.height_inches, args.filename, args.dpi)
+        num_unlocked_cities = args.num_unlocked_cities
+        level = args.level
+        ff = FirefighterMission(num_unlocked_cities)
+        plot_func(ff, level, area, show_params)
+
+    subparser = subparsers.add_parser(cmd)
+    subparser.set_defaults(func=handler_func)
+
+    cli_add_ff_arguments(subparser)
+    cli_add_area_arguments(subparser)
+    cli_add_show_params_arguments(subparser)
+    subparser.add_argument(f'--{lvl_param_name}', type=int, default=1)
+
+def add_commands(subparsers):
+    add_plot_command(subparsers, plot_average_distance_to_farthest_spawn, 'plot_average_distance_to_farthest_spawn')
+    add_plot_command(subparsers, plot_average_distance_between_spawns, 'plot_average_distance_between_spawns')
+    add_plot_command(subparsers, plot_probability_of_multizone_split, 'plot_probability_of_multizone_split')
+
+    add_plot_command(subparsers, plot_average_total_firefighter_distance, 'plot_average_total_firefighter_distance', 'start_level')
+    add_plot_command(subparsers, plot_probability_that_firefighter_stays_on_coast, 'plot_probability_that_firefighter_stays_on_coast', 'start_level')
+    add_plot_command(subparsers, plot_average_distance_to_complete_and_drive_to_cj_house, 'plot_average_distance_to_complete_and_drive_to_cj_house', 'start_level')
+    add_plot_command(subparsers, plot_average_distance_to_complete_and_drive_to_cj_house_2, 'plot_average_distance_to_complete_and_drive_to_cj_house_2', 'start_level')
+
 if __name__ == '__main__':
-    pass
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers()
+    add_commands(subparsers)
+    args = parser.parse_args()
+    if args.func:
+        args.func(args)
