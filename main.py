@@ -446,6 +446,18 @@ class FirefighterMission:
 
         return spawns
 
+class Percentile:
+    def __init__(self, pct):
+        assert pct >= 0 and pct <= 100
+        self.pct = pct
+
+    def __str__(self):
+        return f'{self.pct}th%'
+
+    def get_from_array(self, arr):
+        idx = int((len(arr)-1) * self.pct / 100)
+        return arr[idx]
+
 class HeatMap:
     def __init__(self, min_x, min_y, max_x, max_y, ideal_num_buckets):
         self.min_x = min_x
@@ -463,11 +475,10 @@ class HeatMap:
         self.y_buckets = max(1, round(self.height / self.bucket_size))
         self.actual_num_buckets = self.x_buckets * self.y_buckets
         self.X, self.Y = np.meshgrid(np.linspace(min_x, max_x, self.x_buckets), np.linspace(min_y, max_y, self.y_buckets))
-        self.Z = None
+        self.Zs = None
 
-    def process_in_buckets(self, func, samples_per_bucket, only_near_nodes=False, combine='avg'):
+    def process_in_buckets(self, func, samples_per_bucket, only_near_nodes=False, combine=['avg']):
         bucket_i = -1 # for some reason gets called twice on the first coord
-        @np.vectorize
         def impl(bx, by):
             nonlocal func
             nonlocal bucket_i
@@ -478,7 +489,7 @@ class HeatMap:
                 nearest_node = WORLD.find_node_for_firefighter_spawn_2d(bx, by, 3000.0)
                 if nearest_node is None or dist_2d_max(nearest_node.x, nearest_node.y, bx, by) > self.bucket_size * 2.0 + nearest_node.path_width:
                     print(f'Processing bucket: {bucket_i} / {self.actual_num_buckets} (skipped)')
-                    return float('nan')
+                    return np.asarray([float('nan')] * len(combine))
                 bz = nearest_node.z
 
             print(f'Processing bucket: {bucket_i} / {self.actual_num_buckets}')
@@ -488,20 +499,34 @@ class HeatMap:
                 rx = random.uniform(-self.bucket_size / 2, self.bucket_size / 2)
                 ry = random.uniform(-self.bucket_size / 2, self.bucket_size / 2)
                 vs.append(func(bx+rx, by+ry, bz))
-            if combine == 'avg':
-                return sum(vs) / len(vs)
-            else:
-                assert False
-        self.Z = impl(self.X, self.Y)
+            vs.sort()
+            results = []
+            for comb in combine:
+                if isinstance(comb, Percentile):
+                    results.append(comb.get_from_array(vs))
+                elif comb == 'avg' or comb == 'prob':
+                    results.append(sum(vs) / len(vs))
+                else:
+                    assert False
+            return np.asarray(results)
+
+        Zs = np.frompyfunc(impl, 2, 1)(self.X, self.Y)
+        Zs = np.array([e.tolist() for e in Zs.flatten()]).reshape(Zs.shape[0], Zs.shape[1], -1)
+        Zs = np.dsplit(Zs, len(combine))
+        self.Zs = [np.squeeze(Z) for Z in Zs]
+        self.combine = combine
 
     def smoothen(self, factor):
         # TODO: this. scipy interp2d doesn't work very well, and completely breaks with nans
         pass
 
-    def draw(self, fig, ax, *args, **kwargs):
-        assert self.Z is not None
-        c = ax.pcolormesh(self.X, self.Y, self.Z, *args, **kwargs)
+    def draw(self, i, fig, ax, *args, **kwargs):
+        assert self.Zs[i] is not None
+        c = ax.pcolormesh(self.X, self.Y, self.Zs[i], *args, **kwargs)
         fig.colorbar(c, ax=ax)
+
+    def drawables(self):
+        return enumerate(self.combine)
 
 class SimulationArea:
     def __init__(self, min_x, min_y, max_x, max_y, ideal_num_buckets, samples_per_bucket, only_near_nodes=True):
@@ -526,25 +551,51 @@ class ShowParams:
         cpy.title = title
         return cpy
 
-def show_heatmap(H, show_params, *args, **kwargs):
-    plt.rcParams["figure.figsize"] = [show_params.width_inches, show_params.height_inches]
-    fig, ax = plt.subplots()
-    im = ax.imshow(RADAR_IMAGE_BW, extent=RADAR_IMAGE_EXTENTS)
-    draw_zones(ax)
-
-    H.draw(fig, ax, *args, **kwargs)
-
-    if show_params.title:
-        fig.suptitle(show_params.title)
-
-    if show_params.filename:
-        plt.savefig(show_params.filename, dpi=show_params.dpi)
+def add_combine_type_to_filename(filename, comb):
+    parts = filename.split('.')
+    suffix = ''
+    if isinstance(comb, Percentile):
+        suffix = f'{comb.pct}pct'
+    elif comb == 'avg':
+        suffix = 'avg'
+    elif comb == 'prob':
+        suffix = 'prob'
     else:
-        plt.show()
+        assert False
+    return ''.join(parts[:-1] + ['_', suffix]) + '.' + parts[-1]
 
-def make_and_show_heatmap(func, area, show_params, *args, **kwargs):
+def add_combine_type_to_title(title, comb):
+    prefix = ''
+    if isinstance(comb, Percentile):
+        prefix = str(comb)
+    elif comb == 'avg':
+        prefix = 'Average'
+    elif comb == 'prob':
+        prefix = 'Probability'
+    else:
+        assert False
+    return prefix + ' ' + title
+
+def show_heatmap(H, show_params, *args, **kwargs):
+    for i, comb in H.drawables():
+        plt.rcParams["figure.figsize"] = [show_params.width_inches, show_params.height_inches]
+        fig, ax = plt.subplots()
+        im = ax.imshow(RADAR_IMAGE_BW, extent=RADAR_IMAGE_EXTENTS)
+        draw_zones(ax)
+
+        H.draw(i, fig, ax, *args, **kwargs)
+
+        if show_params.title:
+            fig.suptitle(add_combine_type_to_title(show_params.title, comb))
+
+        if show_params.filename:
+            plt.savefig(add_combine_type_to_filename(show_params.filename, comb), dpi=show_params.dpi)
+        else:
+            plt.show()
+
+def make_and_show_heatmap(func, area, show_params, combine, *args, **kwargs):
     H = HeatMap(area.min_x, area.min_y, area.max_x, area.max_y, area.ideal_num_buckets)
-    H.process_in_buckets(func, area.samples_per_bucket, area.only_near_nodes)
+    H.process_in_buckets(func, area.samples_per_bucket, area.only_near_nodes, combine=combine)
     show_heatmap(H, show_params, *args, **kwargs)
 
 def visualize_buckets(area, show_params):
@@ -552,7 +603,9 @@ def visualize_buckets(area, show_params):
     def sample_func(x, y, z):
         return random.random()
 
-    make_and_show_heatmap(sample_func, area, show_params.with_title(f'Random noise'), cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params.with_title(f'Random noise'), ['avg'], cmap='jet', alpha=0.75)
+
+COMBS = ['avg', Percentile(0), Percentile(25), Percentile(50), Percentile(75), Percentile(100)]
 
 def plot_average_distance_to_farthest_spawn(ff, level, area, show_params):
     @np.vectorize
@@ -560,7 +613,7 @@ def plot_average_distance_to_farthest_spawn(ff, level, area, show_params):
         spawns = ff.generate_level(level, x, y, z)
         return max(dist_3d(s.x, s.y, s.z, x, y, z) for s in spawns)
 
-    make_and_show_heatmap(sample_func, area, show_params.with_title(f'Average distance (straight line) to farthest spawn on level {level}'), cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params.with_title(f'distance (straight line) to farthest spawn on level {level}'), COMBS, cmap='jet', alpha=0.75)
 
 def plot_average_distance_between_spawns(ff, level, area, show_params):
     @np.vectorize
@@ -575,7 +628,7 @@ def plot_average_distance_between_spawns(ff, level, area, show_params):
                 ds.append(d)
         return sum(ds) / len(ds)
 
-    make_and_show_heatmap(sample_func, area, show_params.with_title(f'Average distance (straight line) between spawns on level {level}'), cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params.with_title(f'distance (straight line) between spawns on level {level}'), COMBS, cmap='jet', alpha=0.75)
 
 def plot_distance_to_closest_road(area, show_params):
     def sample_func(x, y, z):
@@ -592,7 +645,7 @@ def plot_probability_of_multizone_split(ff, level, area, show_params):
                 return 1
         return 0
 
-    make_and_show_heatmap(sample_func, area, show_params.with_title(f'Probability of spawns splitting zones on level {level}'), cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params.with_title(f'of spawns splitting zones on level {level}'), ['prob'], cmap='jet', alpha=0.75)
 
 def plot_average_total_firefighter_distance(ff, start_level, area, show_params):
     @np.vectorize
@@ -613,7 +666,7 @@ def plot_average_total_firefighter_distance(ff, start_level, area, show_params):
         ds.append(d)
         return sum(ds) / len(ds)
 
-    make_and_show_heatmap(sample_func, area, show_params.with_title(f'Average total firefighter distance (straight line, order by heuristic) starting at level {level}'), cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params.with_title(f'total firefighter distance (straight line, order by heuristic) starting at level {level}'), COMBS, cmap='jet', alpha=0.75)
 
 def plot_probability_that_firefighter_stays_on_coast(ff, start_level, area, show_params):
     @np.vectorize
@@ -633,7 +686,7 @@ def plot_probability_that_firefighter_stays_on_coast(ff, start_level, area, show
 
         return 1
 
-    make_and_show_heatmap(sample_func, area, show_params, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params.with_title(f'that firefighter stays on coast (LS beach) starting at level {level}'), ['prob'], cmap='jet', alpha=0.75)
 
 def plot_average_distance_to_complete_and_drive_to_cj_house(ff, level, area, show_params):
     def sample_func(x, y, z):
@@ -656,7 +709,7 @@ def plot_average_distance_to_complete_and_drive_to_cj_house(ff, level, area, sho
             dists.append(d)
         return min(dists)
 
-    make_and_show_heatmap(sample_func, area, show_params.with_title(f'Average total [firefighter+drive to CJ\'s home] distance (manhattan, order by heuristic) on level {level}'), cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params.with_title(f'total [firefighter+drive to CJ\'s home] distance (manhattan, order by heuristic) on level {level}'), COMBS, cmap='jet', alpha=0.75)
 
 def plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, level, area, show_params):
     def sample_func(x, y, z):
@@ -671,7 +724,7 @@ def plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, level, area, s
             dists.append(d)
         return min(dists)
 
-    make_and_show_heatmap(sample_func, area, show_params.with_title(f'Average total [firefighter+drive to CJ\'s home] distance (road, order by heuristic) on level {level}'), cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params.with_title(f'total [firefighter+drive to CJ\'s home] distance (road, order by heuristic) on level {level}'), COMBS, cmap='jet', alpha=0.75)
 
 def plot_valid_ff_spawns():
     X = []
