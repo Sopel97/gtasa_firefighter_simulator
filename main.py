@@ -5,6 +5,7 @@ import itertools
 import argparse
 import copy
 import sys
+import time
 import numpy as np
 import networkx as nx
 from matplotlib import pyplot as plt
@@ -479,6 +480,7 @@ class HeatMap:
 
     def process_in_buckets(self, func, samples_per_bucket, only_near_nodes=False, combine=['avg']):
         bucket_i = -1 # for some reason gets called twice on the first coord
+        start_time = time.time()
         def impl(bx, by):
             nonlocal func
             nonlocal bucket_i
@@ -492,7 +494,13 @@ class HeatMap:
                     return np.asarray([float('nan')] * len(combine))
                 bz = nearest_node.z
 
-            print(f'Processing bucket: {bucket_i} / {self.actual_num_buckets}')
+            curr_time = time.time()
+            diff_time = curr_time - start_time
+            if bucket_i == 0:
+                eta_time = 0
+            else:
+                eta_time = diff_time * (self.actual_num_buckets / bucket_i)
+            print(f'Processing bucket: {bucket_i} / {self.actual_num_buckets}. Elapsed: {int(diff_time)}s, ETA: {int(eta_time-diff_time)}s')
 
             vs = []
             for i in range(samples_per_bucket):
@@ -666,7 +674,7 @@ def plot_average_total_firefighter_distance(ff, start_level, area, show_params):
         ds.append(d)
         return sum(ds) / len(ds)
 
-    make_and_show_heatmap(sample_func, area, show_params.with_title(f'total firefighter distance (straight line, order by heuristic) starting at level {level}'), COMBS, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params.with_title(f'total firefighter distance (straight line, order by heuristic) starting at level {start_level}'), COMBS, cmap='jet', alpha=0.75)
 
 def plot_probability_that_firefighter_stays_on_coast(ff, start_level, area, show_params):
     @np.vectorize
@@ -686,7 +694,7 @@ def plot_probability_that_firefighter_stays_on_coast(ff, start_level, area, show
 
         return 1
 
-    make_and_show_heatmap(sample_func, area, show_params.with_title(f'that firefighter stays on coast (LS beach) starting at level {level}'), ['prob'], cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, show_params.with_title(f'that firefighter stays on coast (LS beach) starting at level {start_level}'), ['prob'], cmap='jet', alpha=0.75)
 
 def plot_average_distance_to_complete_and_drive_to_cj_house(ff, level, area, show_params):
     def sample_func(x, y, z):
@@ -874,7 +882,7 @@ def add_plot_command(subparsers, plot_func, cmd, lvl_param_name='level'):
         area = SimulationArea(args.min_x, args.min_y, args.max_x, args.max_y, args.ideal_num_buckets, args.samples_per_bucket, args.only_near_nodes)
         show_params = ShowParams(args.width_inches, args.height_inches, args.filename, args.dpi)
         num_unlocked_cities = args.num_unlocked_cities
-        level = args.level
+        level = vars(args).get(lvl_param_name)
         ff = FirefighterMission(num_unlocked_cities)
         plot_func(ff, level, area, show_params)
 
@@ -902,11 +910,11 @@ def add_commands(subparsers):
     add_plot_command(subparsers, plot_average_distance_to_farthest_spawn, 'plot_average_distance_to_farthest_spawn')
     add_plot_command(subparsers, plot_average_distance_between_spawns, 'plot_average_distance_between_spawns')
     add_plot_command(subparsers, plot_probability_of_multizone_split, 'plot_probability_of_multizone_split')
+    add_plot_command(subparsers, plot_average_distance_to_complete_and_drive_to_cj_house, 'plot_average_distance_to_complete_and_drive_to_cj_house')
+    add_plot_command(subparsers, plot_average_distance_to_complete_and_drive_to_cj_house_2, 'plot_average_distance_to_complete_and_drive_to_cj_house_2')
 
     add_plot_command(subparsers, plot_average_total_firefighter_distance, 'plot_average_total_firefighter_distance', 'start_level')
     add_plot_command(subparsers, plot_probability_that_firefighter_stays_on_coast, 'plot_probability_that_firefighter_stays_on_coast', 'start_level')
-    add_plot_command(subparsers, plot_average_distance_to_complete_and_drive_to_cj_house, 'plot_average_distance_to_complete_and_drive_to_cj_house', 'start_level')
-    add_plot_command(subparsers, plot_average_distance_to_complete_and_drive_to_cj_house_2, 'plot_average_distance_to_complete_and_drive_to_cj_house_2', 'start_level')
 
     add_bucket_visualization_command(subparsers, 'visualize_buckets')
 

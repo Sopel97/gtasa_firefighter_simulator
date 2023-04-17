@@ -11,10 +11,6 @@ plot_average_distance_to_farthest_spawn --level=10 --ideal_num_buckets=4096 --sa
 plot_average_distance_to_farthest_spawn --level=11 --ideal_num_buckets=4096 --samples_per_bucket=1024 --only_near_nodes=True --filename="out/average_distance_to_farthest_spawn_11.png"
 plot_average_distance_to_farthest_spawn --level=12 --ideal_num_buckets=4096 --samples_per_bucket=1024 --only_near_nodes=True --filename="out/average_distance_to_farthest_spawn_12.png"
 
-plot_average_distance_between_spawns --level=1 --ideal_num_buckets=4096 --samples_per_bucket=1024 --only_near_nodes=True --filename="out/average_distance_between_spawns_1.png"
-plot_average_distance_between_spawns --level=2 --ideal_num_buckets=4096 --samples_per_bucket=1024 --only_near_nodes=True --filename="out/average_distance_between_spawns_2.png"
-plot_average_distance_between_spawns --level=3 --ideal_num_buckets=4096 --samples_per_bucket=1024 --only_near_nodes=True --filename="out/average_distance_between_spawns_3.png"
-plot_average_distance_between_spawns --level=4 --ideal_num_buckets=4096 --samples_per_bucket=1024 --only_near_nodes=True --filename="out/average_distance_between_spawns_4.png"
 plot_average_distance_between_spawns --level=5 --ideal_num_buckets=4096 --samples_per_bucket=1024 --only_near_nodes=True --filename="out/average_distance_between_spawns_5.png"
 plot_average_distance_between_spawns --level=6 --ideal_num_buckets=4096 --samples_per_bucket=1024 --only_near_nodes=True --filename="out/average_distance_between_spawns_6.png"
 plot_average_distance_between_spawns --level=7 --ideal_num_buckets=4096 --samples_per_bucket=1024 --only_near_nodes=True --filename="out/average_distance_between_spawns_7.png"

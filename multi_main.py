@@ -9,12 +9,12 @@ def make_on_success_callback(command):
 
 def make_on_failure_callback(command):
     def callback(result):
-        print(f'ERROR: Failed command: `{command}`')
+        print(f'ERROR: Failed command: `{command}`. {result}')
     return callback
 
 def run_command(command):
     print(f'INFO: Executing command: `{command}`')
-    subprocess.run(f'{sys.executable} main.py {command}', universal_newlines=True)
+    subprocess.run(f'{sys.executable} main.py {command}', universal_newlines=True, shell=True)
 
 if __name__ == '__main__':
     commands_filename = sys.argv[1]
