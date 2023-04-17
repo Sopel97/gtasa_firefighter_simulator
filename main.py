@@ -504,30 +504,50 @@ class HeatMap:
         c = ax.pcolormesh(self.X, self.Y, self.Z, *args, **kwargs)
         fig.colorbar(c, ax=ax)
 
-def show_heatmap(H, *args, **kwargs):
-    plt.rcParams["figure.figsize"] = [9, 9]
+class SimulationArea:
+    def __init__(self, min_x, min_y, max_x, max_y, ideal_num_buckets, samples_per_bucket, only_near_nodes=True):
+        self.min_x = min_x
+        self.min_y = min_y
+        self.max_x = max_x
+        self.max_y = max_y
+        self.ideal_num_buckets = ideal_num_buckets
+        self.samples_per_bucket = samples_per_bucket
+        self.only_near_nodes = only_near_nodes
+
+class ShowHeatmapParams:
+    def __init__(self, width_inches=9, height_inches=9, dpi=300, filename=None):
+        self.width_inches = width_inches
+        self.height_inches = height_inches
+        self.dpi = dpi
+        self.filename = filename
+
+def show_heatmap(H, params, *args, **kwargs):
+    plt.rcParams["figure.figsize"] = [params.width_inches, params.height_inches]
     fig, ax = plt.subplots()
     im = ax.imshow(RADAR_IMAGE_BW, extent=RADAR_IMAGE_EXTENTS)
     draw_zones(ax)
 
     H.draw(fig, ax, *args, **kwargs)
 
-    plt.show()
+    if params.filename:
+        plt.savefig(params.filename, dpi=params.dpi)
+    else:
+        plt.show()
 
-def make_and_show_heatmap(func, min_x, min_y, max_x, max_y, ideal_num_buckets, samples_per_bucket, only_near_nodes, *args, **kwargs):
-    H = HeatMap(min_x, min_y, max_x, max_y, ideal_num_buckets)
-    H.process_in_buckets(func, samples_per_bucket, only_near_nodes)
-    show_heatmap(H, *args, **kwargs)
+def make_and_show_heatmap(func, area, params, *args, **kwargs):
+    H = HeatMap(area.min_x, area.min_y, area.max_x, area.max_y, area.ideal_num_buckets)
+    H.process_in_buckets(func, area.samples_per_bucket, area.only_near_nodes)
+    show_heatmap(H, params, *args, **kwargs)
 
-def plot_average_distance_to_farthest_spawn(ff, level, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes=False):
+def plot_average_distance_to_farthest_spawn(ff, level, area, params):
     @np.vectorize
     def sample_func(x, y, z):
         spawns = ff.generate_level(level, x, y, z)
         return max(dist_3d(s.x, s.y, s.z, x, y, z) for s in spawns)
 
-    make_and_show_heatmap(sample_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, params, cmap='jet', alpha=0.75)
 
-def plot_average_distance_between_spawns(ff, level, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes=False):
+def plot_average_distance_between_spawns(ff, level, area, params):
     @np.vectorize
     def sample_func(x, y, z):
         ds = []
@@ -540,16 +560,16 @@ def plot_average_distance_between_spawns(ff, level, min_x, min_y, max_x, max_y, 
                 ds.append(d)
         return sum(ds) / len(ds)
 
-    make_and_show_heatmap(sample_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, params, cmap='jet', alpha=0.75)
 
-def plot_distance_to_closest_road():
+def plot_distance_to_closest_road(area, params):
     def sample_func(x, y, z):
         nearest_node = WORLD.find_node_for_firefighter_spawn_2d(x, y, 3000.0)
         return dist_2d_max(nearest_node.x, nearest_node.y, x, y)
 
-    make_and_show_heatmap(sample_func, 2500.0, -1900.0, 2950.0, 200.0, 2048, 1, False, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, params, cmap='jet', alpha=0.75)
 
-def plot_probability_of_multizone_split(ff, level, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes=False):
+def plot_probability_of_multizone_split(ff, level, area, params):
     def sample_func(x, y, z):
         spawns = ff.generate_level(level, x, y, z)
         for spawn in spawns[1:]: # using all spawns would also include spawns outside of player's zone
@@ -557,9 +577,9 @@ def plot_probability_of_multizone_split(ff, level, min_x, min_y, max_x, max_y, n
                 return 1
         return 0
 
-    make_and_show_heatmap(sample_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, params, cmap='jet', alpha=0.75)
 
-def plot_average_total_firefighter_distance(ff, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes=False):
+def plot_average_total_firefighter_distance(ff, area, params):
     @np.vectorize
     def sample_func(x, y, z):
         ds = []
@@ -578,9 +598,9 @@ def plot_average_total_firefighter_distance(ff, min_x, min_y, max_x, max_y, num_
         ds.append(d)
         return sum(ds) / len(ds)
 
-    make_and_show_heatmap(sample_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, params, cmap='jet', alpha=0.75)
 
-def plot_probability_that_firefighter_stays_on_coast(ff, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes=False):
+def plot_probability_that_firefighter_stays_on_coast(ff, area, params):
     @np.vectorize
     def sample_func(x, y, z):
         for level in range(FF_START_LEVEL, 13):
@@ -598,9 +618,9 @@ def plot_probability_that_firefighter_stays_on_coast(ff, min_x, min_y, max_x, ma
 
         return 1
 
-    make_and_show_heatmap(sample_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, params, cmap='jet', alpha=0.75)
 
-def plot_average_distance_to_complete_and_drive_to_cj_house(ff, level, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes=False):
+def plot_average_distance_to_complete_and_drive_to_cj_house(ff, level, area, params):
     def sample_func(x, y, z):
         cj_x = 2490
         cj_y = -1690
@@ -621,9 +641,9 @@ def plot_average_distance_to_complete_and_drive_to_cj_house(ff, level, min_x, mi
             dists.append(d)
         return min(dists)
 
-    make_and_show_heatmap(sample_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, params, cmap='jet', alpha=0.75)
 
-def plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, level, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes=False):
+def plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, level, area, params):
     def sample_func(x, y, z):
         cj_x = 2490
         cj_y = -1690
@@ -636,7 +656,7 @@ def plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, level, min_x, 
             dists.append(d)
         return min(dists)
 
-    make_and_show_heatmap(sample_func, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes, cmap='jet', alpha=0.75)
+    make_and_show_heatmap(sample_func, area, params, cmap='jet', alpha=0.75)
 
 def plot_valid_ff_spawns():
     X = []
@@ -741,9 +761,9 @@ plt.show()
 
 #plot_valid_ff_spawns()
 
-plot_pathfinding_graph()
+#plot_pathfinding_graph()
 
-ff = FirefighterMission(0)
+#ff = FirefighterMission(0)
 #plot_average_distance_to_farthest_spawn(ff, 1, 2700.0, -1200.0, 3000.0, -600.0, 128, 1)
 #plot_probability_of_multizone_split(ff, 12, 2700.0, -1200.0, 3000.0, -600.0, 256, 32, True)
 #plot_probability_of_multizone_split(ff, 12, 2500.0, -1900.0, 2950.0, 200.0, 1024, 4)
@@ -751,4 +771,7 @@ ff = FirefighterMission(0)
 #plot_average_total_firefighter_distance(ff, 2500.0, -1900.0, 2950.0, 200.0, 1024, 16, True)
 #plot_probability_that_firefighter_stays_on_coast(ff, 2750.0, -1200.0, 2950.0, -500.0, 512, 200, True)
 #plot_distance_to_closest_road()
-plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, 12, 1700.0, -2300.0, 2950.0, 400.0, 2048, 8, True)
+#plot_average_distance_to_complete_and_drive_to_cj_house_2(ff, 12, 1700.0, -2300.0, 2950.0, 400.0, 2048, 8, True)
+
+if __name__ == '__main__':
+    pass
