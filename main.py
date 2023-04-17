@@ -12,6 +12,10 @@ from matplotlib.patches import Circle
 
 from zone import *
 
+# We can ignore level 1 because it's resettable and usually the player
+# has good control on where it ends.
+FF_START_LEVEL = 2
+
 NODES_GLOB = './nodes/nodes*.dat'
 
 RADAR_IMAGE_BW = plt.imread('./assets/radar_bw.png')
@@ -556,7 +560,7 @@ def plot_average_total_firefighter_distance(ff, min_x, min_y, max_x, max_y, num_
     def sample_func(x, y, z):
         ds = []
         d = 0.0
-        for level in range(1, 13):
+        for level in range(FF_START_LEVEL, 13):
             spawns = ff.generate_level(level, x, y, z)
             # we order spawns from farthest to nearest to the start position
             # this is not the ideal heuristics, but fairly close to what actually happens
@@ -575,7 +579,7 @@ def plot_average_total_firefighter_distance(ff, min_x, min_y, max_x, max_y, num_
 def plot_probability_that_firefighter_stays_on_coast(ff, min_x, min_y, max_x, max_y, num_buckets, samples_per_bucket, only_near_nodes=False):
     @np.vectorize
     def sample_func(x, y, z):
-        for level in range(1, 13):
+        for level in range(FF_START_LEVEL, 13):
             spawns = ff.generate_level(level, x, y, z)
             # we order spawns from farthest to nearest to the start position
             # this is not the ideal heuristics, but fairly close to what actually happens
