@@ -270,6 +270,8 @@ class World:
 
                 if node.is_disabled or node.boats: # must not be disabled nor for boats
                     continue
+                if node.z > 1000.0: # filter out interior nodes (only bloodbowl place? is it actually valid?)
+                    continue
                 for j in range(node.num_links):
                     link = self.node_links[node.area_id][node.link_id + j]
                     neighbour_node = self.vehicle_nodes[link.area_id][link.node_id]
