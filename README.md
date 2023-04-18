@@ -2,6 +2,15 @@
 
 This is a faithful reimplementation of the GTA San Andreas in-game firefighter submission generator. It also exposes the in-game node data for pathfinding on roads (though, as of 2023-04-17, it requires more work to properly reflect common paths that don't follow the road lanes)
 
+## Requirements
+
+- Python 3.6.8 (may run on lower, but not tested)
+- `pip install -r requirements.txt`
+
+## Usage
+
+See `python main.py --help`, and `./examples/` for invocations.
+
 ## Examples
 
 Results of running `python multi_main.py examples/all_commands.txt` (2023-04-18), cropped to save space, can be found at https://drive.google.com/drive/folders/1VNjB-6eLX4UGel1yi5Slw0M_nIi_VQJ1?usp=sharing.
